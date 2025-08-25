@@ -29,12 +29,10 @@ const userSchema = new mongoose.Schema(
     roleId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Role",
-      required: [true, "Role is required"],
     },
     organizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Organization",
-      required: [true, "Organization is required"],
     },
     subscription: {
       planId: {

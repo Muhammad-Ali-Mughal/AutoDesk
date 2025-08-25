@@ -1,12 +1,15 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { signup } from "../store/slices/authSlice";
 
 const SignUp = () => {
   const isDarkMode = useSelector((state) => state.darkMode.isDarkMode);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -79,23 +82,20 @@ const SignUp = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validateForm()) {
-      setIsLoading(true);
-      toast
-        .promise(
-          new Promise((resolve) => {
-            setTimeout(() => {
-              resolve();
-            }, 1500);
-          }),
-          {
-            loading: "Creating your account...",
-            success: "Account created successfully!",
-            error: "Failed to create account",
-          }
-        )
-        .finally(() => {
-          setIsLoading(false);
-          console.log("Form submitted:", formData);
+      const loadingToast = toast.loading("Creating your account...");
+
+      dispatch(signup(formData))
+        .unwrap()
+        .then((res) => {
+          toast.dismiss(loadingToast);
+          toast.success("Signed up successfully!");
+          navigate("/dashboard");
+        })
+        .catch((err) => {
+          toast.dismiss(loadingToast);
+          toast.error(
+            typeof err === "string" ? err : "Failed to create account"
+          );
         });
     }
   };
