@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { login } from "../store/slices/authSlice";
 
 const Login = () => {
   const isDarkMode = useSelector((state) => state.darkMode.isDarkMode);
@@ -14,6 +15,8 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -58,24 +61,25 @@ const Login = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validateForm()) {
-      setIsLoading(true);
-      // API call will be implemented later
-      toast
-        .promise(
-          new Promise((resolve) => {
-            setTimeout(() => {
-              resolve();
-            }, 1500);
-          }),
-          {
-            loading: "Signing in...",
-            success: "Successfully signed in!",
-            error: "Failed to sign in",
+      const loadingToast = toast.loading("Signing in...");
+
+      dispatch(login(formData))
+        .unwrap()
+        .then(() => {
+          toast.success("Successfully signed in!", { id: loadingToast });
+          navigate("/dashboard");
+        })
+        .catch((err) => {
+          console.log(err);
+          let errorMessage = "Failed to sign in";
+          if (typeof err === "string") {
+            errorMessage = err;
+          } else if (err?.response?.data?.error) {
+            errorMessage = err.response.data.error;
+          } else if (err?.message) {
+            errorMessage = err.message;
           }
-        )
-        .finally(() => {
-          setIsLoading(false);
-          console.log("Form submitted:", formData);
+          toast.error(errorMessage, { id: loadingToast });
         });
     }
   };

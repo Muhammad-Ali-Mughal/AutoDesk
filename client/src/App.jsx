@@ -1,4 +1,6 @@
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { useEffect } from "react";
 import "./App.css";
 import Header from "./components/Header";
 import Home from "./pages/Home.jsx";
@@ -9,10 +11,34 @@ import NotFound from "./pages/NotFound.jsx";
 import DashboardLayout from "./layouts/DashboardLayout.jsx";
 
 import DashboardHome from "./pages/dashboard/DashboardHome.jsx";
+import Workflows from "./pages/dashboard/Workflows.jsx";
+import Integrations from "./pages/dashboard/Integrations.jsx";
+import Analytics from "./pages/dashboard/Analytics.jsx";
 import Settings from "./pages/dashboard/Settings.jsx";
+import { getCurrentUser } from "./store/slices/authSlice.js";
+
+// ProtectedRoute wrapper
+const ProtectedRoute = ({ children }) => {
+  const { user, loading } = useSelector((state) => state.auth);
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
 
 function App() {
   const location = useLocation();
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
+
+  // Run checkAuth on app mount (validates cookie/token)
+  useEffect(() => {
+    dispatch(getCurrentUser());
+  }, [dispatch]);
+
   const hideHeaderFooter =
     location.pathname.startsWith("/dashboard") ||
     location.pathname === "/login" ||
@@ -25,15 +51,27 @@ function App() {
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Home />} />
-        <Route path="*" element={<NotFound />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
 
-        {/* Dashboard routes with persistent sidebar */}
-        <Route path="/dashboard" element={<DashboardLayout />}>
+        {/* Protected dashboard routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<DashboardHome />} />
+          <Route path="workflows" element={<Workflows />} />
+          <Route path="integrations" element={<Integrations />} />
+          <Route path="analytics" element={<Analytics />} />
           <Route path="settings" element={<Settings />} />
         </Route>
+
+        {/* Catch-all */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
 
       {!hideHeaderFooter && <Footer />}
