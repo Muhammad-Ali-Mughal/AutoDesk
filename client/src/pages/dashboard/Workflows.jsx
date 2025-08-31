@@ -1,8 +1,9 @@
 import { FaPlus, FaDatabase, FaSlack, FaCode } from "react-icons/fa";
 import { useState } from "react";
+import Modal from "../../components/shared/Modal";
+import { Link } from "react-router-dom";
 
 export default function Workflows() {
-  // Example workflows
   const [workflows, setWorkflows] = useState([
     {
       id: 1,
@@ -20,10 +21,34 @@ export default function Workflows() {
     },
   ]);
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+
   const toggleWorkflow = (id) => {
     setWorkflows((prev) =>
       prev.map((wf) => (wf.id === id ? { ...wf, active: !wf.active } : wf))
     );
+  };
+
+  const handleCreateWorkflow = (e) => {
+    e.preventDefault();
+    if (!newName.trim() || !newDescription.trim()) return;
+
+    setWorkflows((prev) => [
+      ...prev,
+      {
+        id: prev.length + 1,
+        name: newName,
+        description: newDescription,
+        modules: [<FaDatabase key="db" />],
+        active: false,
+      },
+    ]);
+
+    setNewName("");
+    setNewDescription("");
+    setIsModalOpen(false);
   };
 
   return (
@@ -31,7 +56,10 @@ export default function Workflows() {
       {/* Header with Create Button */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Workflows</h1>
-        <button className="flex items-center gap-2 px-4 py-2 bg-[#642c8f] text-white cursor-pointer rounded-lg shadow hover:bg-[#7a3bb3] transition">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-[#642c8f] text-white cursor-pointer rounded-lg shadow hover:bg-[#7a3bb3] transition"
+        >
           <FaPlus /> New Workflow
         </button>
       </div>
@@ -45,11 +73,13 @@ export default function Workflows() {
           >
             {/* Left Section */}
             <div>
-              <div className="flex gap-2 mt-2 text-[2rem] text-[#642c8f]">
-                {wf.modules.map((icon) => icon)}
-              </div>
-              <h2 className="text-lg font-medium">{wf.name}</h2>
-              <p className="text-gray-500 text-sm">{wf.description}</p>
+              <Link to={`/dashboard/workflows/editor/${wf.id}`}>
+                <div className="flex gap-2 mt-2 text-[2rem] text-[#642c8f]">
+                  {wf.modules.map((icon) => icon)}
+                </div>
+                <h2 className="text-lg font-medium">{wf.name}</h2>
+                <p className="text-gray-500 text-sm">{wf.description}</p>
+              </Link>
             </div>
 
             {/* Right Section - Toggle */}
@@ -68,6 +98,44 @@ export default function Workflows() {
           </div>
         ))}
       </div>
+
+      {/* Modal with form passed as children */}
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <form onSubmit={handleCreateWorkflow} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Workflow Name
+            </label>
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              className="mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#642c8f]"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Description
+            </label>
+            <textarea
+              value={newDescription}
+              onChange={(e) => setNewDescription(e.target.value)}
+              rows={3}
+              className="mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#642c8f]"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-[#642c8f] text-white py-2 rounded-lg hover:bg-[#7a3bb3] transition"
+          >
+            Create Workflow
+          </button>
+        </form>
+      </Modal>
     </div>
   );
 }
