@@ -15,6 +15,7 @@ import Workflows from "./pages/dashboard/Workflows.jsx";
 import Integrations from "./pages/dashboard/Integrations.jsx";
 import Analytics from "./pages/dashboard/Analytics.jsx";
 import Settings from "./pages/dashboard/Settings.jsx";
+import WorkflowEditor from "./pages/dashboard/WorkflowEditor.jsx";
 import { getCurrentUser } from "./store/slices/authSlice.js";
 
 // ProtectedRoute wrapper
@@ -69,6 +70,15 @@ function App() {
           <Route path="analytics" element={<Analytics />} />
           <Route path="settings" element={<Settings />} />
         </Route>
+
+        <Route
+          path="/dashboard/workflows/editor/:id"
+          element={
+            <ProtectedRoute>
+              <WorkflowEditor />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Catch-all */}
         <Route path="*" element={<NotFound />} />
