@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ReactFlow,
   MiniMap,
@@ -7,36 +7,54 @@ import {
   useNodesState,
   useEdgesState,
   addEdge,
+  useReactFlow,
+  ReactFlowProvider,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import CustomNode from "../../components/shared/CustomNode";
+import ModulesPanel from "../../components/shared/ModulesPanel";
+import ModulePopup from "../../components/shared/ModulePopup";
 
 const nodeTypes = { custom: CustomNode };
 
-function WorkflowEditor() {
+function WorkflowEditorInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const { screenToFlowPosition } = useReactFlow();
+
+  // 👇 Popup state
+  const [popupOpen, setPopupOpen] = useState(false);
+  const [activeNode, setActiveNode] = useState(null);
 
   const onConnect = (params) => setEdges((eds) => addEdge(params, eds));
 
-  // Handle drop from sidebar
   const onDrop = useCallback(
     (event) => {
       event.preventDefault();
       const moduleName = event.dataTransfer.getData("application/reactflow");
       if (!moduleName) return;
 
-      const position = { x: event.clientX - 250, y: event.clientY - 50 }; // adjust offsets
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+
       const newNode = {
         id: `${+new Date()}`,
         type: "custom",
         position,
-        data: { label: moduleName },
+        data: {
+          label: moduleName,
+          onClick: () => {
+            setActiveNode({ label: moduleName });
+            setPopupOpen(true);
+          },
+        },
       };
 
       setNodes((nds) => nds.concat(newNode));
     },
-    [setNodes]
+    [setNodes, screenToFlowPosition]
   );
 
   const onDragOver = useCallback((event) => {
@@ -45,57 +63,53 @@ function WorkflowEditor() {
   }, []);
 
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      {/* Sidebar */}
-      <aside
-        style={{
-          width: 200,
-          background: "#f8f9fa",
-          borderRight: "1px solid #ddd",
-          padding: 16,
-        }}
+    <div style={{ width: "100%", height: "100vh", position: "relative" }}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
+        fitView
+        nodeTypes={nodeTypes}
       >
-        <h4>Modules</h4>
-        {["HTTP Request", "Google Sheets", "Slack", "Email"].map((name) => (
-          <div
-            key={name}
-            style={{
-              padding: "8px 12px",
-              marginBottom: 8,
-              border: "1px solid #ccc",
-              borderRadius: 6,
-              cursor: "grab",
-              background: "white",
-            }}
-            draggable
-            onDragStart={(event) =>
-              event.dataTransfer.setData("application/reactflow", name)
-            }
-          >
-            {name}
-          </div>
-        ))}
-      </aside>
+        <MiniMap />
+        <Controls />
+        <Background variant="dots" gap={12} size={1} />
+      </ReactFlow>
 
-      {/* Canvas */}
-      <div style={{ flexGrow: 1 }}>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onDrop={onDrop}
-          onDragOver={onDragOver}
-          fitView
-          nodeTypes={nodeTypes}
-        >
-          <MiniMap />
-          <Controls />
-          <Background variant="dots" gap={12} size={1} />
-        </ReactFlow>
-      </div>
+      {/* Floating draggable modules panel */}
+      <ModulesPanel />
+
+      {/* Popup shown when clicking a node */}
+      <ModulePopup
+        isOpen={popupOpen}
+        onClose={() => setPopupOpen(false)}
+        onSave={() => {
+          alert(`Saved ${activeNode?.label}!`);
+          setPopupOpen(false);
+        }}
+        headerColor="#2ecc71"
+      >
+        <div>
+          <h3 className="font-semibold mb-2">{activeNode?.label}</h3>
+          <p className="text-sm text-gray-600">
+            Configure settings for {activeNode?.label}.
+          </p>
+        </div>
+      </ModulePopup>
     </div>
+  );
+}
+
+// ✅ Wrap the inner editor with ReactFlowProvider
+function WorkflowEditor() {
+  return (
+    <ReactFlowProvider>
+      <WorkflowEditorInner />
+    </ReactFlowProvider>
   );
 }
 

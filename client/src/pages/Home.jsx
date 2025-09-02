@@ -59,8 +59,9 @@ const Home = () => {
       >
         <motion.div
           style={{ y }}
-          className="absolute inset-0 bg-gradient-to-br from-[#642c8f]/10 to-[#642c8f]/20"
+          className="absolute inset-0 bg-gradient-to-br from-[#642c8f]/10 to-[#642c8f]/20 pointer-events-none"
         />
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -90,11 +91,12 @@ const Home = () => {
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Link
                 to="/signup"
-                className={`inline-block px-8 py-4 rounded-lg text-lg font-semibold ${
+                className={`inline-block px-8 py-4 rounded-lg cursor-pointer text-lg font-semibold ${
                   isDarkMode
                     ? "bg-[#9b6cbf] text-white hover:bg-[#9b6cbf]/90"
                     : "bg-[#642c8f] text-white hover:bg-[#642c8f]/90"
                 }`}
+                style={{ zIndex: 100 }}
               >
                 Start Free Trial
               </Link>

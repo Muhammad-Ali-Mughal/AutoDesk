@@ -4,8 +4,8 @@ function CustomNode({ data }) {
       style={{
         border: "2px solid #e11cffff",
         borderRadius: "12px",
-        width: 160,
-        minHeight: 80,
+        width: 140,
+        minHeight: 40,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -17,7 +17,9 @@ function CustomNode({ data }) {
         textAlign: "center",
         padding: "10px",
         transition: "transform 0.2s ease, box-shadow 0.2s ease",
+        cursor: "pointer",
       }}
+      onClick={data.onClick} // 👈 trigger popup
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = "scale(1.05)";
         e.currentTarget.style.boxShadow = "0 10px 20px rgba(0,0,0,0.25)";
