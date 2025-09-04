@@ -17,16 +17,50 @@ import ModulePopup from "../../components/shared/ModulePopup";
 
 const nodeTypes = { custom: CustomNode };
 
+    const moduleRules = {
+  "Google Sheets": { allowMultipleOutgoing: false, allowMultipleIncoming: true },
+  "Webhook": { allowMultipleOutgoing: true, allowMultipleIncoming: true },
+  "Condition": { allowMultipleOutgoing: true, allowMultipleIncoming: true },
+};
+
 function WorkflowEditorInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { screenToFlowPosition } = useReactFlow();
-
-  // 👇 Popup state
   const [popupOpen, setPopupOpen] = useState(false);
   const [activeNode, setActiveNode] = useState(null);
 
-  const onConnect = (params) => setEdges((eds) => addEdge(params, eds));
+  const onConnect = useCallback(
+    (params) => {
+      setEdges((eds) => {
+        const sourceNode = nodes.find((n) => n.id === params.source);
+        const targetNode = nodes.find((n) => n.id === params.target);
+
+        if (!sourceNode || !targetNode) return eds;
+
+        // check outgoing restriction
+        if (!sourceNode.data.allowMultipleOutgoing) {
+          const existingOut = eds.filter((e) => e.source === sourceNode.id);
+          if (existingOut.length > 0) {
+            alert(`${sourceNode.data.label} can only connect to one node.`);
+            return eds;
+          }
+        }
+
+        // check incoming restriction
+        if (!targetNode.data.allowMultipleIncoming) {
+          const existingIn = eds.filter((e) => e.target === targetNode.id);
+          if (existingIn.length > 0) {
+            alert(`${targetNode.data.label} accepts only one incoming connection.`);
+            return eds;
+          }
+        }
+
+        return addEdge(params, eds);
+      });
+    },
+    [nodes, setEdges]
+  );
 
   const onDrop = useCallback(
     (event) => {
@@ -39,12 +73,19 @@ function WorkflowEditorInner() {
         y: event.clientY,
       });
 
+      // fetch rules for this module, fallback to allowing multiple
+      const rules = moduleRules[moduleName] || {
+        allowMultipleOutgoing: true,
+        allowMultipleIncoming: true,
+      };
+
       const newNode = {
         id: `${+new Date()}`,
         type: "custom",
         position,
         data: {
           label: moduleName,
+          ...rules,
           onClick: () => {
             setActiveNode({ label: moduleName });
             setPopupOpen(true);
@@ -104,7 +145,6 @@ function WorkflowEditorInner() {
   );
 }
 
-// ✅ Wrap the inner editor with ReactFlowProvider
 function WorkflowEditor() {
   return (
     <ReactFlowProvider>

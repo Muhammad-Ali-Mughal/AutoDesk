@@ -82,13 +82,12 @@ const workflowSchema = new mongoose.Schema(
     triggers: {
       type: {
         type: String,
-        required: true,
         enum: ["webhook", "scheduled", "manual", "external_api"],
       },
       cron: {
         type: String,
         required: function () {
-          return this.triggers.type === "scheduled";
+          return this.type === "scheduled";
         },
       },
     },
