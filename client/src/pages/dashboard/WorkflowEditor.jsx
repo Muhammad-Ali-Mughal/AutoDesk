@@ -14,13 +14,14 @@ import "@xyflow/react/dist/style.css";
 import CustomNode from "../../components/shared/CustomNode";
 import ModulesPanel from "../../components/shared/ModulesPanel";
 import ModulePopup from "../../components/shared/ModulePopup";
+import ContextMenu from "../../components/shared/ContextMenu";
 
 const nodeTypes = { custom: CustomNode };
 
-    const moduleRules = {
+const moduleRules = {
   "Google Sheets": { allowMultipleOutgoing: false, allowMultipleIncoming: true },
-  "Webhook": { allowMultipleOutgoing: true, allowMultipleIncoming: true },
-  "Condition": { allowMultipleOutgoing: true, allowMultipleIncoming: true },
+  Webhook: { allowMultipleOutgoing: true, allowMultipleIncoming: true },
+  Condition: { allowMultipleOutgoing: true, allowMultipleIncoming: true },
 };
 
 function WorkflowEditorInner() {
@@ -29,6 +30,7 @@ function WorkflowEditorInner() {
   const { screenToFlowPosition } = useReactFlow();
   const [popupOpen, setPopupOpen] = useState(false);
   const [activeNode, setActiveNode] = useState(null);
+  const [contextMenu, setContextMenu] = useState(null);
 
   const onConnect = useCallback(
     (params) => {
@@ -38,7 +40,6 @@ function WorkflowEditorInner() {
 
         if (!sourceNode || !targetNode) return eds;
 
-        // check outgoing restriction
         if (!sourceNode.data.allowMultipleOutgoing) {
           const existingOut = eds.filter((e) => e.source === sourceNode.id);
           if (existingOut.length > 0) {
@@ -47,7 +48,6 @@ function WorkflowEditorInner() {
           }
         }
 
-        // check incoming restriction
         if (!targetNode.data.allowMultipleIncoming) {
           const existingIn = eds.filter((e) => e.target === targetNode.id);
           if (existingIn.length > 0) {
@@ -73,7 +73,6 @@ function WorkflowEditorInner() {
         y: event.clientY,
       });
 
-      // fetch rules for this module, fallback to allowing multiple
       const rules = moduleRules[moduleName] || {
         allowMultipleOutgoing: true,
         allowMultipleIncoming: true,
@@ -103,6 +102,42 @@ function WorkflowEditorInner() {
     event.dataTransfer.dropEffect = "move";
   }, []);
 
+  // ✅ Handle right-click on nodes
+  const onNodeContextMenu = useCallback((event, node) => {
+    event.preventDefault();
+    setContextMenu({ x: event.clientX, y: event.clientY, node });
+  }, []);
+
+  // ✅ Handle context menu actions
+  const handleMenuAction = (action) => {
+    if (!contextMenu?.node) return;
+    const nodeId = contextMenu.node.id;
+
+    switch (action) {
+      case "edit":
+        setActiveNode(contextMenu.node.data);
+        setPopupOpen(true);
+        break;
+      case "duplicate":
+        const duplicateNode = {
+          ...contextMenu.node,
+          id: `${+new Date()}`,
+          position: {
+            x: contextMenu.node.position.x + 50,
+            y: contextMenu.node.position.y + 50,
+          },
+        };
+        setNodes((nds) => [...nds, duplicateNode]);
+        break;
+      case "delete":
+        setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+        setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+        break;
+      default:
+        break;
+    }
+  };
+
   return (
     <div style={{ width: "100%", height: "100vh", position: "relative" }}>
       <ReactFlow
@@ -113,6 +148,7 @@ function WorkflowEditorInner() {
         onConnect={onConnect}
         onDrop={onDrop}
         onDragOver={onDragOver}
+        onNodeContextMenu={onNodeContextMenu} // ✅ right-click handler
         fitView
         nodeTypes={nodeTypes}
       >
@@ -141,6 +177,24 @@ function WorkflowEditorInner() {
           </p>
         </div>
       </ModulePopup>
+
+      {/* ✅ Fixed Save button */}
+      <button
+        onClick={() => alert("Workflow saved!")}
+        className="fixed top-6 right-6 bg-purple-600 text-white px-5 py-3 rounded-full cursor-pointer shadow-lg hover:bg-purple-700 transition font-semibold"
+      >
+        Save Workflow
+      </button>
+
+      {/* ✅ Context menu */}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          onAction={handleMenuAction}
+        />
+      )}
     </div>
   );
 }
