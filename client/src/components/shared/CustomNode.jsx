@@ -1,4 +1,26 @@
-function CustomNode({ data }) {
+import { Handle, Position, useReactFlow } from "@xyflow/react";
+
+function CustomNode({ data, id }) {
+  const { getEdges } = useReactFlow();
+
+  // live validation for outgoing
+  const isValidSource = (connection) => {
+    if (!data.allowMultipleOutgoing) {
+      const edges = getEdges().filter((e) => e.source === id);
+      return edges.length === 0;
+    }
+    return true;
+  };
+
+  // live validation for incoming
+  const isValidTarget = (connection) => {
+    if (!data.allowMultipleIncoming) {
+      const edges = getEdges().filter((e) => e.target === id);
+      return edges.length === 0;
+    }
+    return true;
+  };
+
   return (
     <div
       style={{
@@ -19,7 +41,7 @@ function CustomNode({ data }) {
         transition: "transform 0.2s ease, box-shadow 0.2s ease",
         cursor: "pointer",
       }}
-      onClick={data.onClick} // 👈 trigger popup
+      onClick={data.onClick}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = "scale(1.05)";
         e.currentTarget.style.boxShadow = "0 10px 20px rgba(0,0,0,0.25)";
@@ -44,6 +66,18 @@ function CustomNode({ data }) {
 
       {/* Module Name */}
       <strong style={{ fontSize: "16px" }}>{data.label}</strong>
+
+      {/* Connection Handles */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        isValidConnection={isValidTarget}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        isValidConnection={isValidSource}
+      />
     </div>
   );
 }

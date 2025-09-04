@@ -1,16 +1,14 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.model.js";
+import Organization from "../models/Organization.model.js";
+import Role from "../models/Role.model.js";
 import { validationResult } from "express-validator";
-
-// Generate Token
 
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
     expiresIn: "7d",
   });
 };
-
-// Register User
 
 export const registerUser = async (req, res) => {
   try {
@@ -19,7 +17,7 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, password, roleId, organizationId } = req.body;
+    const { name, email, password } = req.body;
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
@@ -27,16 +25,33 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ message: "Email already registered" });
     }
 
-    // Create user
-    const user = await User.create({
+    // 👉 Find default role (Owner/Admin)
+    const defaultRole = await Role.findOne({ name: "Owner" });
+    if (!defaultRole) {
+      return res.status(500).json({ message: "Default role not found. Please seed roles." });
+    }
+
+    // 👉 Create user first (without org)
+    const user = new User({
       name,
       email,
       password,
-      roleId,
-      organizationId,
+      roleId: defaultRole._id, // assign role here
     });
 
-    // Send token in cookie
+    // 👉 Create organization for this user
+    const organization = new Organization({
+      name: `${name}'s Organization`, // can be random or user-based
+      ownerId: user._id,
+      users: [user._id],
+    });
+    await organization.save();
+
+    // 👉 Assign orgId to user
+    user.organizationId = organization._id;
+    await user.save();
+
+    // 👉 Generate token
     const token = generateToken(user._id);
     res
       .cookie("token", token, {
@@ -61,6 +76,7 @@ export const registerUser = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+
 
 // Login User
 

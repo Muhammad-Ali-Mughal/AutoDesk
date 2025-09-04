@@ -1,54 +1,75 @@
-import { FaPlus, FaDatabase, FaSlack, FaCode } from "react-icons/fa";
-import { useState } from "react";
+import { FaPlus } from "react-icons/fa";
+import { useState, useEffect } from "react";
 import Modal from "../../components/shared/Modal";
 import { Link } from "react-router-dom";
+import api from "../../utils/api";
+import toast from "react-hot-toast";
+import { getActionIcon } from "../../utils/actionIcons.js";
 
 export default function Workflows() {
-  const [workflows, setWorkflows] = useState([
-    {
-      id: 1,
-      name: "Lead Sync",
-      description: "Sync new leads from website to CRM",
-      modules: [<FaDatabase key="db" />, <FaSlack key="slack" />],
-      active: true,
-    },
-    {
-      id: 2,
-      name: "Error Monitor",
-      description: "Send alerts to Slack on server errors",
-      modules: [<FaCode key="code" />, <FaSlack key="slack" />],
-      active: false,
-    },
-  ]);
-
+  const [workflows, setWorkflows] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
 
-  const toggleWorkflow = (id) => {
-    setWorkflows((prev) =>
-      prev.map((wf) => (wf.id === id ? { ...wf, active: !wf.active } : wf))
-    );
+  // 🔹 Fetch workflows on mount
+  useEffect(() => {
+    const fetchWorkflows = async () => {
+      try {
+        const res = await api.get("/workflows");
+        setWorkflows(res.data.workflows || []);
+      } catch (err) {
+        console.error("Error fetching workflows:", err.response?.data || err.message);
+        toast.error(err.response?.data?.message || "Failed to fetch workflows");
+      }
+    };
+
+    fetchWorkflows();
+  }, []);
+
+  // 🔹 Toggle active/draft
+  const toggleWorkflow = async (id, currentStatus) => {
+    try {
+      const newStatus = currentStatus === "active" ? "paused" : "active";
+      const res = await api.put(`/workflows/${id}`, { status: newStatus });
+      setWorkflows((prev) =>
+        prev.map((wf) =>
+          wf._id === id ? { ...wf, status: res.data.workflow.status } : wf
+        )
+      );
+      toast.success(`Workflow ${newStatus === "active" ? "activated" : "paused"} successfully`);
+    } catch (err) {
+      console.error("Error updating workflow:", err.response?.data || err.message);
+      toast.error(err.response?.data?.message || "Failed to update workflow");
+    }
   };
 
-  const handleCreateWorkflow = (e) => {
+  // 🔹 Create workflow
+  const handleCreateWorkflow = async (e) => {
     e.preventDefault();
-    if (!newName.trim() || !newDescription.trim()) return;
+    if (!newName.trim() || !newDescription.trim()) {
+      toast.error("Name and description are required");
+      return;
+    }
 
-    setWorkflows((prev) => [
-      ...prev,
-      {
-        id: prev.length + 1,
+    try {
+      const res = await api.post("/workflows", {
         name: newName,
         description: newDescription,
-        modules: [<FaDatabase key="db" />],
-        active: false,
-      },
-    ]);
+        triggers: { type: "manual" },
+      });
 
-    setNewName("");
-    setNewDescription("");
-    setIsModalOpen(false);
+      setWorkflows((prev) => [...prev, res.data.workflow]);
+
+      toast.success("Workflow created successfully");
+
+      setNewName("");
+      setNewDescription("");
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error("Error creating workflow:", err.response?.data || err.message);
+      toast.error(err.response?.data?.message || "Failed to create workflow");
+    }
   };
 
   return (
@@ -68,14 +89,17 @@ export default function Workflows() {
       <div className="space-y-4">
         {workflows.map((wf) => (
           <div
-            key={wf.id}
+            key={wf._id}
             className="flex justify-between items-center p-4 rounded-lg border shadow-sm bg-white hover:shadow-md transition"
           >
             {/* Left Section */}
             <div>
-              <Link to={`/dashboard/workflows/editor/${wf.id}`}>
+              <Link to={`/dashboard/workflows/editor/${wf._id}`}>
                 <div className="flex gap-2 mt-2 text-[2rem] text-[#642c8f]">
-                  {wf.modules.map((icon) => icon)}
+                  {wf.actions?.map((action, index) => {
+                    const Icon = getActionIcon(action.type);
+                    return <Icon key={index} />;
+                  })}
                 </div>
                 <h2 className="text-lg font-medium">{wf.name}</h2>
                 <p className="text-gray-500 text-sm">{wf.description}</p>
@@ -84,14 +108,14 @@ export default function Workflows() {
 
             {/* Right Section - Toggle */}
             <button
-              onClick={() => toggleWorkflow(wf.id)}
+              onClick={() => toggleWorkflow(wf._id, wf.status)}
               className={`w-14 h-7 flex items-center rounded-full p-1 transition ${
-                wf.active ? "bg-[#642c8f]" : "bg-gray-300"
+                wf.status === "active" ? "bg-[#642c8f]" : "bg-gray-300"
               }`}
             >
               <div
                 className={`bg-white w-5 h-5 rounded-full shadow-md transform transition ${
-                  wf.active ? "translate-x-7" : "translate-x-0"
+                  wf.status === "active" ? "translate-x-7" : "translate-x-0"
                 }`}
               />
             </button>
@@ -99,7 +123,7 @@ export default function Workflows() {
         ))}
       </div>
 
-      {/* Modal with form passed as children */}
+      {/* Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <form onSubmit={handleCreateWorkflow} className="space-y-4">
           <div>
