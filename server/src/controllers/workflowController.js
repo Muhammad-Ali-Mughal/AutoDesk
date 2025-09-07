@@ -61,14 +61,22 @@ export const getWorkflowById = async (req, res) => {
   }
 };
 
-// ✅ Update workflow (Step 2 + 3)
+// ✅ Update workflow
 export const updateWorkflow = async (req, res) => {
   try {
-    const { triggers, actions, status, name, description } = req.body;
+    const { triggers, actions, status, name, description, nodes, edges } = req.body;
 
     const workflow = await Workflow.findByIdAndUpdate(
       req.params.id,
-      { triggers, actions, status, name, description },
+      { 
+        triggers, 
+        actions, 
+        nodes,    
+        edges,    
+        status,                                         
+        name, 
+        description 
+      },
       { new: true, runValidators: true }
     );
 
