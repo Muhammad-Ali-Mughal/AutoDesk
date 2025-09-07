@@ -40,6 +40,7 @@ const actionSchema = new mongoose.Schema(
         "condition",
         "ai_prompt",
         "slack",
+        "google_sheets",
         "discord",
         "custom",
       ],
@@ -52,6 +53,32 @@ const actionSchema = new mongoose.Schema(
     subject: String,
     body: String,
     filters: [filterSchema],
+  },
+  { _id: false }
+);
+
+const nodeSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true },
+    type: { type: String, required: true },
+    position: {
+      x: { type: Number, required: true },
+      y: { type: Number, required: true },
+    },
+    data: {
+      label: { type: String, required: true },
+      config: { type: mongoose.Schema.Types.Mixed },
+    },
+  },
+  { _id: false }
+);
+
+const edgeSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true },
+    source: { type: String, required: true },
+    target: { type: String, required: true },
+    label: { type: String },
   },
   { _id: false }
 );
@@ -91,7 +118,11 @@ const workflowSchema = new mongoose.Schema(
         },
       },
     },
+
+    nodes: [nodeSchema],
+    edges: [edgeSchema],
     actions: [actionSchema],
+
     status: {
       type: String,
       enum: ["draft", "active", "paused", "archived"],

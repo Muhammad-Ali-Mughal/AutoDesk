@@ -1,9 +1,13 @@
 import { Handle, Position, useReactFlow } from "@xyflow/react";
+import { actionStyles } from "../../utils/actionStyles";
 
 function CustomNode({ data, id }) {
   const { getEdges } = useReactFlow();
 
-  // live validation for outgoing
+  const actionType = data?.actionType || "custom";
+  const styleConfig = actionStyles[actionType] || actionStyles.custom;
+  const Icon = styleConfig.icon;
+
   const isValidSource = (connection) => {
     if (!data.allowMultipleOutgoing) {
       const edges = getEdges().filter((e) => e.source === id);
@@ -12,7 +16,6 @@ function CustomNode({ data, id }) {
     return true;
   };
 
-  // live validation for incoming
   const isValidTarget = (connection) => {
     if (!data.allowMultipleIncoming) {
       const edges = getEdges().filter((e) => e.target === id);
@@ -24,31 +27,33 @@ function CustomNode({ data, id }) {
   return (
     <div
       style={{
-        border: "2px solid #e11cffff",
+        border: styleConfig.border,
         borderRadius: "12px",
-        width: 140,
-        minHeight: 40,
+        width: 150,
+        minHeight: 60,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #6c63ff, #e11cffff)",
+        background: styleConfig.gradient,
         color: "white",
         boxShadow: "0 6px 14px rgba(0,0,0,0.15)",
         fontFamily: "sans-serif",
         textAlign: "center",
-        padding: "10px",
+        padding: "12px",
         transition: "transform 0.2s ease, box-shadow 0.2s ease",
         cursor: "pointer",
       }}
       onClick={data.onClick}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = "scale(1.05)";
-        e.currentTarget.style.boxShadow = "0 10px 20px rgba(0,0,0,0.25)";
+        e.currentTarget.style.boxShadow =
+          "0 10px 20px rgba(0,0,0,0.25)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = "scale(1)";
-        e.currentTarget.style.boxShadow = "0 6px 14px rgba(0,0,0,0.15)";
+        e.currentTarget.style.boxShadow =
+          "0 6px 14px rgba(0,0,0,0.15)";
       }}
     >
       {/* Top Icon */}
@@ -59,13 +64,18 @@ function CustomNode({ data, id }) {
           padding: "6px 10px",
           marginBottom: "8px",
           fontSize: "20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        {data.icon || "⚡"}
+        {Icon ? <Icon size={20} /> : "⚡"}
       </div>
 
       {/* Module Name */}
-      <strong style={{ fontSize: "16px" }}>{data.label}</strong>
+      <strong style={{ fontSize: "15px" }}>
+        {data.label || styleConfig.label}
+      </strong>
 
       {/* Connection Handles */}
       <Handle

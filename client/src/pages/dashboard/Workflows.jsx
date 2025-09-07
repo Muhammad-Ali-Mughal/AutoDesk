@@ -1,16 +1,17 @@
-import { FaPlus } from "react-icons/fa";
+import { FaPlus, FaTrash } from "react-icons/fa";
 import { useState, useEffect } from "react";
 import Modal from "../../components/shared/Modal";
 import { Link } from "react-router-dom";
 import api from "../../utils/api";
 import toast from "react-hot-toast";
-import { getActionIcon } from "../../utils/actionIcons.js";
+import { actionStyles } from "../../utils/actionStyles";
 
 export default function Workflows() {
   const [workflows, setWorkflows] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   // 🔹 Fetch workflows on mount
   useEffect(() => {
@@ -19,7 +20,10 @@ export default function Workflows() {
         const res = await api.get("/workflows");
         setWorkflows(res.data.workflows || []);
       } catch (err) {
-        console.error("Error fetching workflows:", err.response?.data || err.message);
+        console.error(
+          "Error fetching workflows:",
+          err.response?.data || err.message
+        );
         toast.error(err.response?.data?.message || "Failed to fetch workflows");
       }
     };
@@ -37,9 +41,16 @@ export default function Workflows() {
           wf._id === id ? { ...wf, status: res.data.workflow.status } : wf
         )
       );
-      toast.success(`Workflow ${newStatus === "active" ? "activated" : "paused"} successfully`);
+      toast.success(
+        `Workflow ${
+          newStatus === "active" ? "activated" : "paused"
+        } successfully`
+      );
     } catch (err) {
-      console.error("Error updating workflow:", err.response?.data || err.message);
+      console.error(
+        "Error updating workflow:",
+        err.response?.data || err.message
+      );
       toast.error(err.response?.data?.message || "Failed to update workflow");
     }
   };
@@ -67,8 +78,30 @@ export default function Workflows() {
       setNewDescription("");
       setIsModalOpen(false);
     } catch (err) {
-      console.error("Error creating workflow:", err.response?.data || err.message);
+      console.error(
+        "Error creating workflow:",
+        err.response?.data || err.message
+      );
       toast.error(err.response?.data?.message || "Failed to create workflow");
+    }
+  };
+
+  // 🔹 Delete workflow
+  const handleDeleteWorkflow = async () => {
+    if (!deleteTarget) return;
+
+    try {
+      await api.delete(`/workflows/${deleteTarget._id}`);
+      setWorkflows((prev) => prev.filter((wf) => wf._id !== deleteTarget._id));
+      toast.success("Workflow deleted successfully");
+    } catch (err) {
+      console.error(
+        "Error deleting workflow:",
+        err.response?.data || err.message
+      );
+      toast.error(err.response?.data?.message || "Failed to delete workflow");
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -95,35 +128,66 @@ export default function Workflows() {
             {/* Left Section */}
             <div>
               <Link to={`/dashboard/workflows/editor/${wf._id}`}>
-                <div className="flex gap-2 mt-2 text-[2rem] text-[#642c8f]">
-                  {wf.actions?.map((action, index) => {
-                    const Icon = getActionIcon(action.type);
-                    return <Icon key={index} />;
-                  })}
+                <div className="flex gap-2 mt-2 text-[2rem]">
+                  {wf.actions?.length > 0 ? (
+                    wf.actions.map((action, index) => {
+                      const style =
+                        actionStyles[action.type] || actionStyles.custom;
+                      const Icon = style.icon;
+
+                      return (
+                        <span
+                          key={index}
+                          className="p-2 rounded-full"
+                          style={{
+                            background: style.gradient,
+                            color: "#fff",
+                          }}
+                        >
+                          <Icon />
+                        </span>
+                      );
+                    })
+                  ) : (
+                    <span className="text-gray-400 text-sm">
+                      No actions yet
+                    </span>
+                  )}
                 </div>
                 <h2 className="text-lg font-medium">{wf.name}</h2>
                 <p className="text-gray-500 text-sm">{wf.description}</p>
               </Link>
             </div>
 
-            {/* Right Section - Toggle */}
-            <button
-              onClick={() => toggleWorkflow(wf._id, wf.status)}
-              className={`w-14 h-7 flex items-center rounded-full p-1 transition ${
-                wf.status === "active" ? "bg-[#642c8f]" : "bg-gray-300"
-              }`}
-            >
-              <div
-                className={`bg-white w-5 h-5 rounded-full shadow-md transform transition ${
-                  wf.status === "active" ? "translate-x-7" : "translate-x-0"
+            {/* Right Section - Toggle + Delete */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => toggleWorkflow(wf._id, wf.status)}
+                className={`w-14 h-7 flex items-center rounded-full p-1 transition ${
+                  wf.status === "active" ? "bg-[#642c8f]" : "bg-gray-300"
                 }`}
-              />
-            </button>
+              >
+                <div
+                  className={`bg-white w-5 h-5 rounded-full shadow-md transform transition ${
+                    wf.status === "active" ? "translate-x-7" : "translate-x-0"
+                  }`}
+                />
+              </button>
+
+              {/* Delete Button */}
+              <button
+                onClick={() => setDeleteTarget(wf)}
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition shadow-sm"
+                title="Delete workflow"
+              >
+                <FaTrash className="text-sm" />
+              </button>
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Modal */}
+      {/* Create Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <form onSubmit={handleCreateWorkflow} className="space-y-4">
           <div>
@@ -159,6 +223,35 @@ export default function Workflows() {
             Create Workflow
           </button>
         </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-gray-800">
+            Delete Workflow
+          </h2>
+          <p className="text-gray-600">
+            Are you sure you want to delete{" "}
+            <span className="font-semibold">{deleteTarget?.name}</span>? This
+            action cannot be undone.
+          </p>
+
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setDeleteTarget(null)}
+              className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDeleteWorkflow}
+              className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

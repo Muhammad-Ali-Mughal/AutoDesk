@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { actionStyles } from "../../utils/actionStyles";
 
 function ModulesPanel() {
   const [position, setPosition] = useState({ x: 20, y: 20 });
@@ -30,18 +31,16 @@ function ModulesPanel() {
     document.removeEventListener("mouseup", stopDrag);
   };
 
-  const modules = ["HTTP Request", "Google Sheets", "Slack", "Email"];
-
   return (
     <div
       ref={panelRef}
       style={{
-        width: 200,
-        background: "#f8f9fa",
+        width: 240,
+        background: "#fff",
         border: "1px solid #ddd",
-        borderRadius: 8,
+        borderRadius: 12,
         padding: 12,
-        boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
+        boxShadow: "0 6px 14px rgba(0,0,0,0.1)",
         position: "absolute",
         top: position.y,
         left: position.x,
@@ -54,37 +53,49 @@ function ModulesPanel() {
         onMouseDown={startDrag}
         style={{
           cursor: "move",
-          fontWeight: "bold",
+          fontWeight: "600",
           marginBottom: 12,
           textAlign: "center",
-          background: "#e9ecef",
-          padding: "6px",
-          borderRadius: 4,
+          background: "#f3f0f7",
+          padding: "8px",
+          borderRadius: 8,
+          color: "#642c8f",
         }}
       >
         Modules
       </div>
 
-      {/* Module Items */}
-      {modules.map((name) => (
-        <div
-          key={name}
-          style={{
-            padding: "8px 12px",
-            marginBottom: 8,
-            border: "1px solid #ccc",
-            borderRadius: 6,
-            cursor: "grab",
-            background: "white",
-          }}
-          draggable
-          onDragStart={(event) =>
-            event.dataTransfer.setData("application/reactflow", name)
-          }
-        >
-          {name}
-        </div>
-      ))}
+      {/* Module Items (from actionStyles) */}
+      <div className="space-y-3">
+        {Object.entries(actionStyles).map(([type, style]) => {
+          const Icon = style.icon;
+          return (
+            <div
+              key={type}
+              draggable
+              onDragStart={(event) =>
+                event.dataTransfer.setData("application/reactflow", type)
+              }
+              className="flex items-center gap-3 p-2 rounded-lg cursor-grab transition hover:scale-[1.02]"
+              style={{
+                border: style.border,
+                background: "#fff",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+              }}
+            >
+              <span
+                className="w-10 h-10 flex items-center justify-center rounded-full text-white"
+                style={{
+                  background: style.gradient,
+                }}
+              >
+                <Icon size={18} />
+              </span>
+              <span className="font-medium text-gray-700">{style.label}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
