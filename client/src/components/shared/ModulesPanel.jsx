@@ -67,7 +67,9 @@ function ModulesPanel() {
 
       {/* Module Items (from actionStyles) */}
       <div className="space-y-3">
-        {Object.entries(actionStyles).map(([type, style]) => {
+        {Object.entries(actionStyles)
+        .filter(([type]) => type !== "custom")
+        .map(([type, style]) => {
           const Icon = style.icon;
           return (
             <div

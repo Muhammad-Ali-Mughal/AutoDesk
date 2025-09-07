@@ -4,6 +4,8 @@ import authRoute from "./routes/authRoute.js";
 import cookieParser from "cookie-parser";
 import {seedRoles} from './seeds/seedRoles.js';
 import workflowRoute from "./routes/workflowRoute.js";
+import triggerRoutes from "./routes/triggerRoutes.js";
+import publicWebhookRoutes from "./routes/publicWebhookRoutes.js";
 
 const app = express();
 
@@ -21,6 +23,10 @@ app.use(cookieParser());
 // Routes
 app.use("/api/auth", authRoute);
 app.use("/api/workflows", workflowRoute);
+app.use("/api/triggers", triggerRoutes);
+
+// Public Routes
+app.use("/public/webhooks", publicWebhookRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -36,7 +42,7 @@ app.get("/", (req, res) => {
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
-    error: "Something went wrong!",
+    error: "Something went wrong Globally!",
   });
 });
 
