@@ -6,6 +6,8 @@ import {seedRoles} from './seeds/seedRoles.js';
 import workflowRoute from "./routes/workflowRoute.js";
 import triggerRoutes from "./routes/triggerRoutes.js";
 import publicWebhookRoutes from "./routes/publicWebhookRoutes.js";
+import { loadSchedules } from "./services/scheduler.js";
+import scheduleRoutes from "./routes/scheduleRoutes.js";
 
 const app = express();
 
@@ -24,6 +26,7 @@ app.use(cookieParser());
 app.use("/api/auth", authRoute);
 app.use("/api/workflows", workflowRoute);
 app.use("/api/triggers", triggerRoutes);
+app.use("/api/schedules", scheduleRoutes)
 
 // Public Routes
 app.use("/api/public/webhooks", publicWebhookRoutes);
@@ -34,6 +37,9 @@ app.get("/", (req, res) => {
     message: "Autodesk server is running",
   });
 });
+
+// Loading Schedules
+loadSchedules();
 
 // seedRoles()
 
