@@ -1,5 +1,3 @@
-import fetch from "node-fetch";
-
 // Handlers for different action types
 const actionHandlers = {
   webhook: async (action, context) => {

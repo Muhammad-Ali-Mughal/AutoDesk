@@ -6,6 +6,7 @@ function ModulePopup({
   isOpen,
   onClose,
   onSave,
+  title = "Module",
   headerColor = "purple",
   children,
 }) {
@@ -39,7 +40,7 @@ function ModulePopup({
               className="flex items-center justify-between px-4 py-2"
               style={{ backgroundColor: headerColor, color: "white" }}
             >
-              <h2 className="font-semibold">Google Sheets</h2>
+              <h2 className="font-semibold">{title}</h2>
               <div className="flex items-center gap-2">
                 <FiHelpCircle size={18} className="cursor-pointer" />
                 <FiMaximize2 size={18} className="cursor-pointer" />
@@ -47,7 +48,7 @@ function ModulePopup({
               </div>
             </div>
 
-            {/* Content (children passed here) */}
+            {/* Content */}
             <div className="p-4">{children}</div>
 
             {/* Footer */}

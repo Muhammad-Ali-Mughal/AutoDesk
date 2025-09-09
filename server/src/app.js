@@ -26,7 +26,7 @@ app.use("/api/workflows", workflowRoute);
 app.use("/api/triggers", triggerRoutes);
 
 // Public Routes
-app.use("/public/webhooks", publicWebhookRoutes);
+app.use("/api/public/webhooks", publicWebhookRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({

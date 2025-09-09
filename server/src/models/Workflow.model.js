@@ -117,6 +117,12 @@ const workflowSchema = new mongoose.Schema(
           return this.type === "scheduled";
         },
       },
+      webhookSecret: {
+        type: String,
+        required: function () {
+          return this.type === "webhook";
+        },
+      },
     },
 
     nodes: [nodeSchema],
