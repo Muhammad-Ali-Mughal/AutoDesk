@@ -23,7 +23,9 @@ import { actionStyles } from "../../utils/actionStyles";
 import WebhookConfig from "../../configs/WebhookConfig";
 import DefaultConfig from "../../configs/DefaultConfig";
 import EmailConfig from "../../configs/EmailConfig";
+import SchedulerConfig from "../../configs/SchedulerConfig";
 import { useModuleSaveHandler } from "../../hooks/useWebhookSaveHandler";
+import { useSchedulerSaveHandler } from "../../hooks/useSchedulerSaveHandler";
 
 const nodeTypes = { custom: CustomNode };
 
@@ -31,6 +33,7 @@ const getActionType = (label = "") => {
   const normalized = label.toLowerCase().trim().replace(/\s+/g, "_");
 
   if (normalized.includes("webhook")) return "webhook";
+  if (normalized.includes("schedule")) return "schedule";
   if (normalized.includes("email")) return "email";
   if (normalized.includes("slack")) return "slack";
   if (normalized.includes("google_sheets")) return "google_sheets";
@@ -54,6 +57,7 @@ function WorkflowEditorInner() {
   const [loading, setLoading] = useState(true);
 
   const { handleSaveModule } = useModuleSaveHandler(workflowId);
+  const { handleSaveScheduler } = useSchedulerSaveHandler(workflowId);
 
   // ✅ Load workflow when editor opens
   useEffect(() => {
@@ -247,7 +251,7 @@ function WorkflowEditorInner() {
           },
         })),
         edges,
-        status: "draft",
+        // status: "draft",
         triggers: webhookNode
           ? {
               type: "webhook",
@@ -308,11 +312,19 @@ function WorkflowEditorInner() {
       <ModulePopup
         isOpen={popupOpen}
         onClose={() => setPopupOpen(false)}
-        onSave={() => handleSaveModule(activeNode, () => setPopupOpen(false))}
+        onSave={() => {
+          if (activeNode?.actionType === "schedule") {
+            handleSaveScheduler(activeNode, () => setPopupOpen(false));
+          } else {
+            handleSaveModule(activeNode, () => setPopupOpen(false));
+          }
+        }}
         title={activeNode?.label || "Module"}
         headerColor={actionStyles[activeNode?.actionType]?.color || "#444"}
       >
-        {activeNode?.actionType === "webhook" ? (
+        {activeNode?.actionType === "schedule" ? (
+          <SchedulerConfig node={activeNode} workflowId={workflowId} />
+        ) : activeNode?.actionType === "webhook" ? (
           <WebhookConfig node={activeNode} workflowId={workflowId} />
         ) : activeNode?.actionType === "email" ? (
           <EmailConfig node={activeNode} />
