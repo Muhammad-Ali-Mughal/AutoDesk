@@ -17,6 +17,12 @@ const webhookSchema = new mongoose.Schema(
       ref: "Workflow",
       required: [true, "Workflow is required"],
     },
+    secret: {
+      type: String,
+      required: [true, "Webhook secret is required"],
+      unique: true, // ensure uniqueness
+      index: true,  // faster lookups
+    },
     url: {
       type: String,
       required: [true, "Webhook URL is required"],
@@ -42,7 +48,7 @@ const webhookSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: { createdAt: true, updatedAt: false },
+    timestamps: { createdAt: true, updatedAt: true },
   }
 );
 

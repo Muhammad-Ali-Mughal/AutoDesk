@@ -19,6 +19,11 @@ import { useParams } from "react-router-dom";
 import api from "../../utils/api";
 import toast from "react-hot-toast";
 import { moduleRules } from "../../utils/moduleRules";
+import { actionStyles } from "../../utils/actionStyles";
+import WebhookConfig from "../../configs/WebhookConfig";
+import DefaultConfig from "../../configs/DefaultConfig";
+import EmailConfig from "../../configs/EmailConfig";
+import { useModuleSaveHandler } from "../../hooks/useWebhookSaveHandler";
 
 const nodeTypes = { custom: CustomNode };
 
@@ -48,6 +53,8 @@ function WorkflowEditorInner() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const { handleSaveModule } = useModuleSaveHandler(workflowId);
+
   // ✅ Load workflow when editor opens
   useEffect(() => {
     const fetchWorkflow = async () => {
@@ -57,23 +64,26 @@ function WorkflowEditorInner() {
         const res = await api.get(`/workflows/${workflowId}`);
         const wf = res.data.workflow;
 
-        const decoratedNodes = (wf.nodes || []).map((n) => ({
-          ...n,
-          data: {
-            ...n.data,
-            actionType:
-              n.data?.actionType ||
-              getActionType(n.data?.label) ||
-              "custom",
-            service: n.data?.service || n.data?.label || "Custom",
-          },
-        }));
+        const decoratedNodes = (wf.nodes || []).map((n) => {
+          const actionType = n.data?.actionType || getActionType(n.data?.label);
+          const secret =
+            actionType === "webhook" && wf.triggers?.type === "webhook"
+              ? wf.triggers.webhookSecret
+              : undefined;
+
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              actionType,
+              service: n.data?.service || n.data?.label || "Custom",
+              secret,
+            },
+          };
+        });
 
         setNodes(decoratedNodes);
         setEdges(wf.edges || []);
-
-        // 🔹 Success toast
-        // toast.success("Workflow loaded successfully!");
       } catch (err) {
         console.error(
           "Error loading workflow:",
@@ -138,17 +148,33 @@ function WorkflowEditorInner() {
         allowMultipleIncoming: true,
       };
 
+      const actionType = getActionType(moduleName);
+
+      // Assign secret from workflow triggers if webhook
+      const workflowWebhookSecret =
+        actionType === "webhook"
+          ? nodes.find((n) => n.data?.actionType === "webhook")?.data?.secret
+          : undefined;
+
       const newNode = {
         id: `${+new Date()}`,
         type: "custom",
         position,
         data: {
           label: moduleName,
-          actionType: getActionType(moduleName),
+          actionType,
           service: moduleName,
+          secret: workflowWebhookSecret,
+          config: {},
           ...rules,
           onClick: () => {
-            setActiveNode({ label: moduleName });
+            setActiveNode({
+              label: moduleName,
+              actionType,
+              service: moduleName,
+              secret: workflowWebhookSecret,
+              config: {},
+            });
             setPopupOpen(true);
           },
         },
@@ -156,7 +182,7 @@ function WorkflowEditorInner() {
 
       setNodes((nds) => nds.concat(newNode));
     },
-    [setNodes, screenToFlowPosition]
+    [setNodes, screenToFlowPosition, nodes]
   );
 
   const onDragOver = useCallback((event) => {
@@ -176,6 +202,7 @@ function WorkflowEditorInner() {
     switch (action) {
       case "edit":
         setActiveNode(contextMenu.node.data);
+        // setActiveNode(contextMenu.node);
         setPopupOpen(true);
         break;
       case "duplicate":
@@ -209,23 +236,27 @@ function WorkflowEditorInner() {
     try {
       setSaving(true);
 
-      const actions = nodes.map((n) => {
-        const actionType =
-          n.data?.actionType || getActionType(n.data?.label) || "custom";
+      const webhookNode = nodes.find((n) => n.data?.actionType === "webhook");
 
-        return {
-          type: actionType,
-          service: n.data?.service || n.data?.label || "Custom",
-          to: n.data?.config?.to,
-          subject: n.data?.config?.subject,
-          body: n.data?.config?.body,
-          filters: n.data?.config?.filters || [],
-        };
-      });
+      const payload = {
+        nodes: nodes.map((n) => ({
+          ...n,
+          data: {
+            ...n.data,
+            secret: n.data?.secret,
+          },
+        })),
+        edges,
+        status: "draft",
+        triggers: webhookNode
+          ? {
+              type: "webhook",
+              webhookSecret: webhookNode.data.secret,
+            }
+          : null,
+      };
 
-      const payload = { nodes, edges, actions, status: "draft" };
-
-      const res = await api.put(`/workflows/${workflowId}`, payload);
+      await api.put(`/workflows/${workflowId}`, payload);
 
       toast.success("Workflow saved successfully!");
     } catch (err) {
@@ -236,7 +267,6 @@ function WorkflowEditorInner() {
     }
   };
 
-  // 🔹 Show skeleton loader while workflow loads
   if (loading) {
     return (
       <div className="w-full h-screen flex items-center justify-center bg-gray-50">
@@ -248,7 +278,7 @@ function WorkflowEditorInner() {
               <div className="h-4 bg-gray-200 rounded w-24"></div>
             </div>
           </div>
-          <p className="text-gray-500">Loading workflow...</p>
+          {/* <p className="text-gray-500">Loading workflow...</p> */}
         </div>
       </div>
     );
@@ -278,18 +308,17 @@ function WorkflowEditorInner() {
       <ModulePopup
         isOpen={popupOpen}
         onClose={() => setPopupOpen(false)}
-        onSave={() => {
-          toast.success(`Saved ${activeNode?.label}!`);
-          setPopupOpen(false);
-        }}
-        headerColor="#2ecc71"
+        onSave={() => handleSaveModule(activeNode, () => setPopupOpen(false))}
+        title={activeNode?.label || "Module"}
+        headerColor={actionStyles[activeNode?.actionType]?.color || "#444"}
       >
-        <div>
-          <h3 className="font-semibold mb-2">{activeNode?.label}</h3>
-          <p className="text-sm text-gray-600">
-            Configure settings for {activeNode?.label}.
-          </p>
-        </div>
+        {activeNode?.actionType === "webhook" ? (
+          <WebhookConfig node={activeNode} workflowId={workflowId} />
+        ) : activeNode?.actionType === "email" ? (
+          <EmailConfig node={activeNode} />
+        ) : (
+          <DefaultConfig node={activeNode} />
+        )}
       </ModulePopup>
 
       <button

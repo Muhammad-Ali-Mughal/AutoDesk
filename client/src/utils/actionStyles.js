@@ -1,4 +1,4 @@
-import { FaGoogleDrive, FaSlack, FaDiscord, FaEnvelope, FaCode } from "react-icons/fa";
+import { FaGoogleDrive, FaSlack, FaDiscord, FaEnvelope, FaCode, FaLink } from "react-icons/fa";
 import { SiGooglesheets } from "react-icons/si";
 
 export const actionStyles = {
@@ -36,5 +36,12 @@ export const actionStyles = {
     gradient: "linear-gradient(135deg, #666, #222)",
     border: "2px solid #444",
     icon: FaCode,
+  },
+  webhook: {
+    label: "Webhook",
+    color: "#0d9488",
+    gradient: "linear-gradient(135deg, #0d9488, #134e4a)",
+    border: "2px solid #0d9488",
+    icon: FaLink,
   },
 };
