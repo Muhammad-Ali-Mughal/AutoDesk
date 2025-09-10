@@ -36,6 +36,7 @@ const actionSchema = new mongoose.Schema(
       enum: [
         "email",
         "webhook",
+        "schedule",
         "delay",
         "condition",
         "ai_prompt",

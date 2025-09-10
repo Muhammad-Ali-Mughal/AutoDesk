@@ -27,7 +27,6 @@ export default function Workflows() {
         toast.error(err.response?.data?.message || "Failed to fetch workflows");
       }
     };
-
     fetchWorkflows();
   }, []);
 
@@ -131,17 +130,14 @@ export default function Workflows() {
                 <div className="flex gap-2 mt-2 text-[2rem]">
                   {wf.actions?.length > 0 ? (
                     wf.actions.map((action, index) => {
-                      // inside wf.actions.map(...)
                       const rawType = (action.type || "")
                         .toString()
                         .toLowerCase()
                         .trim();
                       let typeKey = rawType.replace(/\s+/g, "_");
 
-                      // alias: accept either "scheduler" or "schedule"
-                      if (typeKey === "scheduler") typeKey = "schedule";
-                      if (typeKey === "webhook") typeKey = "webhook"; // example, keep explicit if needed
-
+                      if (typeKey === "schedule") typeKey = "schedule";
+                      if (typeKey === "webhook") typeKey = "webhook";
                       const style =
                         actionStyles[typeKey] || actionStyles.custom;
                       const Icon = style.icon;

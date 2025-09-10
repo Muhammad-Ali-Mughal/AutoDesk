@@ -232,44 +232,56 @@ function WorkflowEditorInner() {
   };
 
   const handleSaveWorkflow = async () => {
-    if (!workflowId) {
-      toast.error("No workflow ID found.");
-      return;
-    }
+  if (!workflowId) {
+    toast.error("No workflow ID found.");
+    return;
+  }
 
-    try {
-      setSaving(true);
+  try {
+    setSaving(true);
 
-      const webhookNode = nodes.find((n) => n.data?.actionType === "webhook");
+    const webhookNode = nodes.find((n) => n.data?.actionType === "webhook");
 
-      const payload = {
-        nodes: nodes.map((n) => ({
-          ...n,
-          data: {
-            ...n.data,
-            secret: n.data?.secret,
-          },
-        })),
-        edges,
-        // status: "draft",
-        triggers: webhookNode
-          ? {
-              type: "webhook",
-              webhookSecret: webhookNode.data.secret,
-            }
-          : null,
+    // 🔹 Build actions array from nodes
+    const actions = nodes.map((n) => {
+      const { actionType, service, config } = n.data;
+      return {
+        type: actionType,
+        service: service || actionType, // ✅ ensure service is always set
+        config: config || {},
       };
+    });
 
-      await api.put(`/workflows/${workflowId}`, payload);
+    const payload = {
+      nodes: nodes.map((n) => ({
+        ...n,
+        data: {
+          ...n.data,
+          secret: n.data?.secret,
+        },
+      })),
+      edges,
+      actions, // ✅ includes service now
+      triggers: webhookNode
+        ? {
+            type: "webhook",
+            webhookSecret: webhookNode.data.secret,
+          }
+        : null,
+    };
 
-      toast.success("Workflow saved successfully!");
-    } catch (err) {
-      console.error("Save failed:", err.response?.data || err.message);
-      toast.error(err.response?.data?.message || "Failed to save workflow");
-    } finally {
-      setSaving(false);
-    }
-  };
+    await api.put(`/workflows/${workflowId}`, payload);
+
+    toast.success("Workflow saved successfully!");
+  } catch (err) {
+    console.error("Save failed:", err.response?.data || err.message);
+    toast.error(err.response?.data?.message || "Failed to save workflow");
+  } finally {
+    setSaving(false);
+  }
+};
+
+
 
   if (loading) {
     return (
