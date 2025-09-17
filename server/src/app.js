@@ -2,12 +2,13 @@ import express from "express";
 import cors from "cors";
 import authRoute from "./routes/authRoute.js";
 import cookieParser from "cookie-parser";
-import {seedRoles} from './seeds/seedRoles.js';
+import { seedRoles } from "./seeds/seedRoles.js";
 import workflowRoute from "./routes/workflowRoute.js";
 import triggerRoutes from "./routes/triggerRoutes.js";
 import publicWebhookRoutes from "./routes/publicWebhookRoutes.js";
 import { loadSchedules } from "./services/scheduler.js";
 import scheduleRoutes from "./routes/scheduleRoutes.js";
+import emailRoutes from "./routes/emailRoutes.js";
 
 const app = express();
 
@@ -26,7 +27,8 @@ app.use(cookieParser());
 app.use("/api/auth", authRoute);
 app.use("/api/workflows", workflowRoute);
 app.use("/api/triggers", triggerRoutes);
-app.use("/api/schedules", scheduleRoutes)
+app.use("/api/schedules", scheduleRoutes);
+app.use("/api/email", emailRoutes);
 
 // Public Routes
 app.use("/api/public/webhooks", publicWebhookRoutes);
@@ -42,7 +44,6 @@ app.get("/", (req, res) => {
 loadSchedules();
 
 // seedRoles()
-
 
 // Global error handler
 app.use((err, req, res, next) => {
