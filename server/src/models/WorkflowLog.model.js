@@ -2,29 +2,19 @@ import mongoose from "mongoose";
 
 const executionStepSchema = new mongoose.Schema(
   {
-    stepName: {
-      type: String,
-      required: true,
-    },
-    action: {
-      type: String,
-      required: true,
-    },
+    nodeId: { type: String, required: true },
+    stepName: { type: String, required: true },
+    action: { type: String, required: true },
     status: {
       type: String,
-      enum: ["success", "failed", "skipped"],
-      required: true,
+      enum: ["pending", "running", "success", "failed", "skipped"],
+      default: "pending",
     },
-    startedAt: {
-      type: Date,
-      required: true,
-    },
-    completedAt: {
-      type: Date,
-    },
-    errorMessage: {
-      type: String,
-    },
+    startedAt: Date,
+    completedAt: Date,
+    input: mongoose.Schema.Types.Mixed,
+    output: mongoose.Schema.Types.Mixed,
+    errorMessage: String,
   },
   { _id: false }
 );
@@ -51,15 +41,19 @@ const workflowLogSchema = new mongoose.Schema(
       ref: "User",
       required: [true, "Executed by user is required"],
     },
-    triggeredAt: {
-      type: Date,
-      default: Date.now,
+    triggeredAt: { type: Date, default: Date.now },
+
+    status: {
+      type: String,
+      enum: ["running", "success", "failed"],
+      default: "running",
     },
+    startedAt: { type: Date, default: Date.now },
+    finishedAt: Date,
+
     executionSteps: [executionStepSchema],
   },
-  {
-    timestamps: false,
-  }
+  { timestamps: true }
 );
 
 export default mongoose.model("WorkflowLog", workflowLogSchema);

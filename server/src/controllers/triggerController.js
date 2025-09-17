@@ -16,7 +16,8 @@ export const publicWebhookTrigger = async (req, res) => {
     if (!workflow) return res.status(404).json({ error: "Workflow not found" });
 
     const webhook = await Webhook.findOne({ workflowId, secret });
-    if (!webhook) return res.status(403).json({ error: "Invalid webhook secret" });
+    if (!webhook)
+      return res.status(403).json({ error: "Invalid webhook secret" });
 
     if (workflow.status !== "active") {
       return res.status(400).json({ error: "Workflow is not active" });
@@ -29,11 +30,19 @@ export const publicWebhookTrigger = async (req, res) => {
       _source: "public_webhook",
     };
 
-    executeWorkflow(workflow, context)
-      .then(() => console.log(`Public webhook triggered workflow ${workflow._id}`))
-      .catch(err => console.error("Workflow execution error:", err));
+    await executeWorkflow(workflow, context, {
+      executedBy: workflow.organizationId,
+      organizationId: workflow.organizationId,
+    })
+      .then(() =>
+        console.log(`Public webhook triggered workflow ${workflow._id}`)
+      )
+      .catch((err) => console.error("Workflow execution error:", err));
 
-    return res.json({ message: "Workflow triggered", workflowId: workflow._id });
+    return res.json({
+      message: "Workflow triggered",
+      workflowId: workflow._id,
+    });
   } catch (err) {
     console.error("Public webhook trigger error:", err);
     return res.status(500).json({ error: "Internal server error" });
@@ -56,10 +65,14 @@ export const triggerWebhook = async (req, res) => {
     });
 
     if (!workflow) return res.status(404).json({ error: "Workflow not found" });
-    if (workflow.status !== "active") return res.status(400).json({ error: "Workflow is not active" });
+    if (workflow.status !== "active")
+      return res.status(400).json({ error: "Workflow is not active" });
 
     const webhook = await Webhook.findOne({ workflowId });
-    if (!webhook) return res.status(400).json({ error: "Webhook not configured for this workflow" });
+    if (!webhook)
+      return res
+        .status(400)
+        .json({ error: "Webhook not configured for this workflow" });
 
     const context = {
       ...payload,
@@ -69,11 +82,23 @@ export const triggerWebhook = async (req, res) => {
       _triggeredAt: new Date().toISOString(),
     };
 
-    executeWorkflow(workflow, context)
-      .then(() => console.log(`Workflow ${workflow._id} executed (triggered by ${user._id})`))
-      .catch(err => console.error(`Execution error for workflow ${workflow._id}:`, err));
+    await executeWorkflow(workflow, context, {
+      executedBy: user._id,
+      organizationId: user.organizationId,
+    })
+      .then(() =>
+        console.log(
+          `Workflow ${workflow._id} executed (triggered by ${user._id})`
+        )
+      )
+      .catch((err) =>
+        console.error(`Execution error for workflow ${workflow._id}:`, err)
+      );
 
-    return res.json({ message: "Workflow triggered", workflowId: workflow._id });
+    return res.json({
+      message: "Workflow triggered",
+      workflowId: workflow._id,
+    });
   } catch (err) {
     console.error("Trigger error:", err);
     return res.status(500).json({ error: "Internal server error" });
@@ -95,7 +120,8 @@ export const updateWorkflowWebhook = async (req, res) => {
       _id: workflowId,
       $or: [{ organizationId: user.organizationId }, { userId: user._id }],
     });
-    if (!workflow) return res.status(404).json({ message: "Workflow not found" });
+    if (!workflow)
+      return res.status(404).json({ message: "Workflow not found" });
 
     // ✅ Use provided secret or generate a new one
     const secret = clientSecret || crypto.randomUUID();
@@ -130,7 +156,6 @@ export const updateWorkflowWebhook = async (req, res) => {
   }
 };
 
-
 // GET /api/triggers/:workflowId/trigger-secret
 export const getTriggerSecret = async (req, res) => {
   try {
@@ -146,9 +171,14 @@ export const getTriggerSecret = async (req, res) => {
       return res.status(404).json({ message: "Workflow not found" });
     }
 
-    return res.json({ secret: null, message: "No webhook secret yet for this workflow" });
+    return res.json({
+      secret: null,
+      message: "No webhook secret yet for this workflow",
+    });
   } catch (err) {
     console.error("Error fetching webhook secret:", err);
-    return res.status(500).json({ message: "Server error while fetching webhook secret" });
+    return res
+      .status(500)
+      .json({ message: "Server error while fetching webhook secret" });
   }
 };

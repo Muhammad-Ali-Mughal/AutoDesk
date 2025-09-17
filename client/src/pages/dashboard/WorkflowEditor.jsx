@@ -26,6 +26,7 @@ import EmailConfig from "../../configs/EmailConfig";
 import SchedulerConfig from "../../configs/SchedulerConfig";
 import { useModuleSaveHandler } from "../../hooks/useWebhookSaveHandler";
 import { useSchedulerSaveHandler } from "../../hooks/useSchedulerSaveHandler";
+import { useEmailSaveHandler } from "../../hooks/useEmailSaveHandler";
 
 const nodeTypes = { custom: CustomNode };
 
@@ -58,6 +59,7 @@ function WorkflowEditorInner() {
 
   const { handleSaveModule } = useModuleSaveHandler(workflowId);
   const { handleSaveScheduler } = useSchedulerSaveHandler(workflowId);
+  const { handleSaveEmail } = useEmailSaveHandler(workflowId);
 
   // ✅ Load workflow when editor opens
   useEffect(() => {
@@ -232,56 +234,54 @@ function WorkflowEditorInner() {
   };
 
   const handleSaveWorkflow = async () => {
-  if (!workflowId) {
-    toast.error("No workflow ID found.");
-    return;
-  }
+    if (!workflowId) {
+      toast.error("No workflow ID found.");
+      return;
+    }
 
-  try {
-    setSaving(true);
+    try {
+      setSaving(true);
 
-    const webhookNode = nodes.find((n) => n.data?.actionType === "webhook");
+      const webhookNode = nodes.find((n) => n.data?.actionType === "webhook");
 
-    // 🔹 Build actions array from nodes
-    const actions = nodes.map((n) => {
-      const { actionType, service, config } = n.data;
-      return {
-        type: actionType,
-        service: service || actionType, // ✅ ensure service is always set
-        config: config || {},
+      // 🔹 Build actions array from nodes
+      const actions = nodes.map((n) => {
+        const { actionType, service, config } = n.data;
+        return {
+          type: actionType,
+          service: service || actionType, // ✅ ensure service is always set
+          config: config || {},
+        };
+      });
+
+      const payload = {
+        nodes: nodes.map((n) => ({
+          ...n,
+          data: {
+            ...n.data,
+            secret: n.data?.secret,
+          },
+        })),
+        edges,
+        actions, // ✅ includes service now
+        triggers: webhookNode
+          ? {
+              type: "webhook",
+              webhookSecret: webhookNode.data.secret,
+            }
+          : null,
       };
-    });
 
-    const payload = {
-      nodes: nodes.map((n) => ({
-        ...n,
-        data: {
-          ...n.data,
-          secret: n.data?.secret,
-        },
-      })),
-      edges,
-      actions, // ✅ includes service now
-      triggers: webhookNode
-        ? {
-            type: "webhook",
-            webhookSecret: webhookNode.data.secret,
-          }
-        : null,
-    };
+      await api.put(`/workflows/${workflowId}`, payload);
 
-    await api.put(`/workflows/${workflowId}`, payload);
-
-    toast.success("Workflow saved successfully!");
-  } catch (err) {
-    console.error("Save failed:", err.response?.data || err.message);
-    toast.error(err.response?.data?.message || "Failed to save workflow");
-  } finally {
-    setSaving(false);
-  }
-};
-
-
+      toast.success("Workflow saved successfully!");
+    } catch (err) {
+      console.error("Save failed:", err.response?.data || err.message);
+      toast.error(err.response?.data?.message || "Failed to save workflow");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -327,6 +327,8 @@ function WorkflowEditorInner() {
         onSave={() => {
           if (activeNode?.actionType === "schedule") {
             handleSaveScheduler(activeNode, () => setPopupOpen(false));
+          } else if (activeNode?.actionType === "email") {
+            handleSaveEmail(activeNode, () => setPopupOpen(false));
           } else {
             handleSaveModule(activeNode, () => setPopupOpen(false));
           }
