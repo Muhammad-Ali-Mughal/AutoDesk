@@ -84,6 +84,8 @@ function WorkflowEditorInner() {
               actionType,
               service: n.data?.service || n.data?.label || "Custom",
               secret,
+              // 🔑 normalize config here
+              config: n.data?.config || n.config || {},
             },
           };
         });
@@ -334,6 +336,7 @@ function WorkflowEditorInner() {
         ) : activeNode?.actionType === "email" ? (
           <EmailConfig
             node={activeNode}
+            workflowId={workflowId}
             onChange={(updatedNode) => {
               setActiveNode(updatedNode);
               setNodes((nds) =>
