@@ -1,9 +1,24 @@
 import express from "express";
-import { addEmailAction } from "../controllers/emailController.js";
+import {
+  addEmailAction,
+  getEmailConfig,
+  updateEmailAction,
+  deleteEmailAction,
+} from "../controllers/emailController.js";
+import { protect } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-// POST /workflows/:id/actions/email
-router.post("/:workflowId", addEmailAction);
+// Create or upsert email config for a node
+router.post("/:workflowId", protect, addEmailAction);
+
+// Read config for a specific node
+router.get("/:workflowId/node/:nodeId", protect, getEmailConfig);
+
+// Optional: update existing
+router.put("/:workflowId/node/:nodeId", protect, updateEmailAction);
+
+// Optional: delete
+router.delete("/:workflowId/node/:nodeId", protect, deleteEmailAction);
 
 export default router;
