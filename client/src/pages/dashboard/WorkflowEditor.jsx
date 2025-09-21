@@ -155,8 +155,6 @@ function WorkflowEditorInner() {
       };
 
       const actionType = getActionType(moduleName);
-
-      // Assign secret from workflow triggers if webhook
       const workflowWebhookSecret =
         actionType === "webhook"
           ? nodes.find((n) => n.data?.actionType === "webhook")?.data?.secret
@@ -170,20 +168,13 @@ function WorkflowEditorInner() {
           label: moduleName,
           actionType,
           service: moduleName,
-          secret: workflowWebhookSecret,
-          config: {},
           ...rules,
           onClick: () => {
-            setActiveNode({
-              label: moduleName,
-              actionType,
-              service: moduleName,
-              secret: workflowWebhookSecret,
-              config: {},
-            });
+            setActiveNode(newNode);
             setPopupOpen(true);
           },
         },
+        config: {},
       };
 
       setNodes((nds) => nds.concat(newNode));
@@ -207,8 +198,10 @@ function WorkflowEditorInner() {
 
     switch (action) {
       case "edit":
-        setActiveNode(contextMenu.node.data);
-        // setActiveNode(contextMenu.node);
+        setActiveNode({
+          ...contextMenu.node.data,
+          id: contextMenu.node.id,
+        });
         setPopupOpen(true);
         break;
       case "duplicate":
@@ -243,17 +236,15 @@ function WorkflowEditorInner() {
       setSaving(true);
 
       const webhookNode = nodes.find((n) => n.data?.actionType === "webhook");
-
-      // 🔹 Build actions array from nodes
       const actions = nodes.map((n) => {
         const { actionType, service, config } = n.data;
         return {
+          nodeId: n.id,
           type: actionType,
-          service: service || actionType, // ✅ ensure service is always set
+          service: service || actionType,
           config: config || {},
         };
       });
-
       const payload = {
         nodes: nodes.map((n) => ({
           ...n,
@@ -341,7 +332,19 @@ function WorkflowEditorInner() {
         ) : activeNode?.actionType === "webhook" ? (
           <WebhookConfig node={activeNode} workflowId={workflowId} />
         ) : activeNode?.actionType === "email" ? (
-          <EmailConfig node={activeNode} />
+          <EmailConfig
+            node={activeNode}
+            onChange={(updatedNode) => {
+              setActiveNode(updatedNode);
+              setNodes((nds) =>
+                nds.map((n) =>
+                  n.id === updatedNode.id
+                    ? { ...n, data: { ...updatedNode } }
+                    : n
+                )
+              );
+            }}
+          />
         ) : (
           <DefaultConfig node={activeNode} />
         )}
