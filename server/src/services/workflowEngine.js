@@ -1,14 +1,27 @@
 import WorkflowLog from "../models/WorkflowLog.model.js";
-import { sendDummyEmail } from "./dummyEmailService.js";
+import { sendEmail } from "./mailer.js";
+import { resolveAction } from "../resolvers/actionResolver.js";
 
 const actionHandlers = {
   webhook: async (action, context) => {
-    const res = await fetch(action.service, {
+    console.log("Running webhook action");
+    // console.log(action);
+    const url = action.config?.url;
+    if (!url) {
+      console.warn("⚠️ No webhook URL configured, skipping");
+      return context;
+    }
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(context),
     });
-    return await res.json();
+
+    try {
+      return await res.json();
+    } catch {
+      return { success: true };
+    }
   },
 
   delay: async (action, context) => {
@@ -19,15 +32,13 @@ const actionHandlers = {
   },
 
   email: async (action, context) => {
-    // ✅ Use the dummy email service
+    // console.log("Sending email with action config:", action);
     const emailData = {
-      to: action.config?.to || "test@example.com",
-      subject: action.config?.subject || "No Subject",
-      body: action.config?.body || "Hello from Dummy Email!",
+      to: action.config?.to || "muhammadaliapple3@gmail.com",
+      subject: action.config?.subject || "Error occurred with Email Data",
+      body: action.config?.body || "Hello from Gmail SMTP!",
     };
-
-    const result = await sendDummyEmail(emailData);
-
+    const result = await sendEmail(emailData);
     return { ...context, emailResult: result };
   },
 
@@ -67,7 +78,7 @@ export async function executeWorkflow(
   inputData,
   { executedBy, organizationId }
 ) {
-  console.log("executing workflow", workflow.name);
+  console.log("🚀 Executing workflow:", workflow.name);
 
   const log = new WorkflowLog({
     executionId: workflow._id,
@@ -78,9 +89,11 @@ export async function executeWorkflow(
   });
 
   let context = inputData;
-  // console.log(workflow);
 
-  let triggerNode = workflow.nodes.find((n) => n.type === "trigger");
+  let triggerNode = workflow.nodes.find(
+    (n) => n.type === "trigger" || n.data.label === "webhook"
+  );
+  // console.log(workflow.nodes);
   if (!triggerNode) {
     console.warn("⚠️ No trigger node found, using first node instead");
     triggerNode = workflow.nodes[0];
@@ -103,9 +116,17 @@ export async function executeWorkflow(
 async function executeNode(nodeId, workflow, context, log) {
   const node = workflow.nodes.find((n) => n.id === nodeId);
   if (!node) return;
-
-  const action = workflow.actions.find((a) => a.service === node.data.label);
-
+  let action = workflow.actions.find((a) => a.nodeId === node.id);
+  action = await resolveAction(action, node, workflow._id);
+  if (action?.toObject) {
+    action = action.toObject();
+  } else if (action?._doc) {
+    action = { ...action._doc, config: action.config };
+  }
+  // console.log("Raw action:", action);
+  // console.log("Action type direct:", action.type);
+  // console.log("Action type from _doc:", action._doc?.type);
+  // console.log(action);
   const step = {
     nodeId: node.id,
     stepName: node.data.label,
@@ -136,11 +157,10 @@ async function executeNode(nodeId, workflow, context, log) {
     log.executionSteps.push(step);
     throw err;
   }
-
   log.executionSteps.push(step);
-
   // Traverse to next nodes
   const nextEdges = workflow.edges.filter((e) => e.source === node.id);
+  // console.log("Edges from this node:", nextEdges);
   for (let edge of nextEdges) {
     await executeNode(edge.target, workflow, context, log);
   }

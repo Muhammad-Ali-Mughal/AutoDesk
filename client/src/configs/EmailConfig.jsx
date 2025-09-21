@@ -5,12 +5,19 @@ export default function EmailConfig({ node, onChange }) {
   const [subject, setSubject] = useState(node.data?.subject || "");
   const [body, setBody] = useState(node.data?.body || "");
 
-  // Update parent node when fields change
   useEffect(() => {
-    onChange?.({
+    const updatedNode = {
       ...node,
-      data: { ...node.data, to, subject, body },
-    });
+      id: node.id,
+      data: {
+        ...(node.data || {}),
+        to,
+        subject,
+        body,
+      },
+    };
+    onChange?.(updatedNode);
+    // console.log(node);
   }, [to, subject, body]);
 
   return (

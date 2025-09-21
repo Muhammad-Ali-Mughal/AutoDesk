@@ -10,19 +10,17 @@ export const useEmailSaveHandler = (workflowId) => {
           toast.error("No workflow ID provided");
           return;
         }
-
+        // console.log("Saving email config node:", node.data);
         const payload = {
           nodeId: node.id,
           workflowId,
           type: "email",
           service: "email",
-          config: {
-            to: node.data?.to,
-            subject: node.data?.subject,
-            body: node.data?.body,
-          },
+          to: node.data?.to || "",
+          subject: node.data?.subject || "",
+          body: node.data?.body || "",
         };
-
+        // console.log("Saving email config:", payload);
         await api.post(`/email/${workflowId}`, payload);
 
         toast.success("Email configuration saved");

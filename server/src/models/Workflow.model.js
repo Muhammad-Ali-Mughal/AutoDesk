@@ -30,6 +30,10 @@ const filterSchema = new mongoose.Schema(
 
 const actionSchema = new mongoose.Schema(
   {
+    nodeId: {
+      type: String,
+      required: true,
+    },
     type: {
       type: String,
       required: true,
@@ -54,6 +58,10 @@ const actionSchema = new mongoose.Schema(
     subject: String,
     body: String,
     filters: [filterSchema],
+    config: {
+      type: Object,
+      default: {},
+    },
   },
   { _id: false }
 );

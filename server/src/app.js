@@ -41,7 +41,7 @@ app.get("/", (req, res) => {
 });
 
 // Loading Schedules
-loadSchedules();
+// loadSchedules();
 
 // seedRoles()
 
