@@ -9,6 +9,7 @@ import publicWebhookRoutes from "./routes/publicWebhookRoutes.js";
 import { loadSchedules } from "./services/scheduler.js";
 import scheduleRoutes from "./routes/scheduleRoutes.js";
 import emailRoutes from "./routes/emailRoutes.js";
+import googleRoutes from "./routes/googleRoutes.js";
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use("/api/workflows", workflowRoute);
 app.use("/api/triggers", triggerRoutes);
 app.use("/api/schedules", scheduleRoutes);
 app.use("/api/email", emailRoutes);
+app.use("/api/google", googleRoutes);
 
 // Public Routes
 app.use("/api/public/webhooks", publicWebhookRoutes);

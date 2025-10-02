@@ -20,10 +20,14 @@ import api from "../../utils/api";
 import toast from "react-hot-toast";
 import { moduleRules } from "../../utils/moduleRules";
 import { actionStyles } from "../../utils/actionStyles";
+// configs
 import WebhookConfig from "../../configs/WebhookConfig";
 import DefaultConfig from "../../configs/DefaultConfig";
 import EmailConfig from "../../configs/EmailConfig";
 import SchedulerConfig from "../../configs/SchedulerConfig";
+import GoogleSheetsConfig from "../../configs/GoogleSheetsConfig";
+import GoogleDriveConfig from "../../configs/GoogleDriveConfig";
+// handlers
 import { useModuleSaveHandler } from "../../hooks/useWebhookSaveHandler";
 import { useSchedulerSaveHandler } from "../../hooks/useSchedulerSaveHandler";
 import { useEmailSaveHandler } from "../../hooks/useEmailSaveHandler";
@@ -335,6 +339,36 @@ function WorkflowEditorInner() {
           <WebhookConfig node={activeNode} workflowId={workflowId} />
         ) : activeNode?.actionType === "email" ? (
           <EmailConfig
+            node={activeNode}
+            workflowId={workflowId}
+            onChange={(updatedNode) => {
+              setActiveNode(updatedNode);
+              setNodes((nds) =>
+                nds.map((n) =>
+                  n.id === updatedNode.id
+                    ? { ...n, data: { ...updatedNode } }
+                    : n
+                )
+              );
+            }}
+          />
+        ) : activeNode?.actionType === "google_sheets" ? (
+          <GoogleSheetsConfig
+            node={activeNode}
+            workflowId={workflowId}
+            onChange={(updatedNode) => {
+              setActiveNode(updatedNode);
+              setNodes((nds) =>
+                nds.map((n) =>
+                  n.id === updatedNode.id
+                    ? { ...n, data: { ...updatedNode } }
+                    : n
+                )
+              );
+            }}
+          />
+        ) : activeNode?.actionType === "google_drive" ? (
+          <GoogleDriveConfig
             node={activeNode}
             workflowId={workflowId}
             onChange={(updatedNode) => {

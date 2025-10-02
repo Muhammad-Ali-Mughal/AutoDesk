@@ -1,11 +1,12 @@
 import WorkflowLog from "../models/WorkflowLog.model.js";
 import { sendEmail } from "./mailer.js";
 import { resolveAction } from "../resolvers/actionResolver.js";
+import { appendRowForUser, readSheetForUser } from "./googleSheetsService.js";
+import { uploadFileForUser, listFilesForUser } from "./googleDriveService.js";
 
 const actionHandlers = {
   webhook: async (action, context) => {
     console.log("Running webhook action");
-    // console.log(action);
     const url = action.config?.url;
     if (!url) {
       console.warn("⚠️ No webhook URL configured, skipping");
@@ -16,7 +17,6 @@ const actionHandlers = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(context),
     });
-
     try {
       return await res.json();
     } catch {
@@ -32,7 +32,6 @@ const actionHandlers = {
   },
 
   email: async (action, context) => {
-    // console.log("Sending email with action config:", action);
     const emailData = {
       to: action.config?.to || "muhammadaliapple3@gmail.com",
       subject: action.config?.subject || "Error occurred with Email Data",
@@ -46,6 +45,30 @@ const actionHandlers = {
     const result = action.filters.every((f) => applyFilter(f, context));
     console.log(`🔀 Condition evaluated: ${result}`);
     return result ? context : null;
+  },
+
+  google_sheets: async (action, context) => {
+    console.log("📊 Running Google Sheets action");
+    if (action.config?.operation === "append") {
+      const { spreadsheetId, range, values, userId } = action.config;
+      return await appendRowForUser(userId, spreadsheetId, range, values);
+    } else if (action.config?.operation === "read") {
+      const { spreadsheetId, range, userId } = action.config;
+      return await readSheetForUser(userId, spreadsheetId, range);
+    }
+    return context;
+  },
+
+  google_drive: async (action, context) => {
+    console.log("📁 Running Google Drive action");
+    if (action.config?.operation === "upload") {
+      const { userId, fileName, mimeType, data } = action.config;
+      return await uploadFileForUser(userId, fileName, mimeType, data);
+    } else if (action.config?.operation === "list") {
+      const { userId, query } = action.config;
+      return await listFilesForUser(userId, query);
+    }
+    return context;
   },
 };
 
