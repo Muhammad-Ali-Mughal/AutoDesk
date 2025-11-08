@@ -18,23 +18,26 @@ export default function Sidebar() {
 
   const menuItems = [
     { name: "Dashboard", path: "/dashboard", icon: <FaTachometerAlt /> },
-    { name: "Workflows", path: "/dashboard/workflows", icon: <FaProjectDiagram /> },
+    {
+      name: "Workflows",
+      path: "/dashboard/workflows",
+      icon: <FaProjectDiagram />,
+    },
     { name: "Integrations", path: "/dashboard/integrations", icon: <FaPlug /> },
     { name: "Analytics", path: "/dashboard/analytics", icon: <FaChartBar /> },
     { name: "Settings", path: "/dashboard/settings", icon: <FaCog /> },
   ];
 
-  // 🔹 Logout handler
   const handleLogout = async () => {
     await dispatch(logout());
-    navigate("/"); // ✅ redirect to home
+    navigate("/");
   };
 
   return (
     <aside
-      className={`w-64 min-h-screen flex flex-col p-4 ${
+      className={`fixed top-0 left-0 h-screen w-64 flex flex-col p-4 shadow-lg z-50 ${
         isDarkMode ? "bg-gray-900 text-gray-100" : "bg-white text-gray-900"
-      } shadow-lg`}
+      }`}
     >
       {/* Logo */}
       <div className="flex items-center mb-8">
@@ -48,7 +51,7 @@ export default function Sidebar() {
       </div>
 
       {/* Menu */}
-      <nav className="flex-1">
+      <nav className="flex-1 overflow-y-auto">
         <ul className="space-y-2">
           {menuItems.map((item) => (
             <li key={item.name}>

@@ -3,9 +3,12 @@ import Sidebar from "../components/Sidebar";
 
 export default function DashboardLayout() {
   return (
-    <div style={{ display: "flex" }}>
+    <div>
+      {/* Fixed Sidebar */}
       <Sidebar />
-      <div style={{ flex: 1, padding: "20px" }}>
+
+      {/* Main content area */}
+      <div className="ml-64 p-5">
         <Outlet />
       </div>
     </div>
