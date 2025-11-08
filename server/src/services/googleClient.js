@@ -12,15 +12,12 @@ export function createOAuthClient() {
 export async function getAuthorizedClient(userId) {
   const account = await GoogleAccount.findOne({ userId });
   if (!account) throw new Error("Google account not connected");
-
   const client = createOAuthClient();
   client.setCredentials({
     access_token: account.accessToken,
     refresh_token: account.refreshToken,
     expiry_date: account.expiryDate?.getTime(),
   });
-
-  // Automatically refresh access token when expired
   client.on("tokens", async (tokens) => {
     try {
       if (tokens.refresh_token) account.refreshToken = tokens.refresh_token;

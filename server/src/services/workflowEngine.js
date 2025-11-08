@@ -3,6 +3,8 @@ import { sendEmail } from "./mailer.js";
 import { resolveAction } from "../resolvers/actionResolver.js";
 import { appendRowForUser, readSheetForUser } from "./googleSheetsService.js";
 import { uploadFileForUser, listFilesForUser } from "./googleDriveService.js";
+import GoogleSheets from "../models/GoogleSheets.model.js";
+import WorkflowModel from "../models/Workflow.model.js";
 
 const actionHandlers = {
   webhook: async (action, context) => {
@@ -49,14 +51,45 @@ const actionHandlers = {
 
   google_sheets: async (action, context) => {
     console.log("📊 Running Google Sheets action");
-    if (action.config?.operation === "append") {
-      const { spreadsheetId, range, values, userId } = action.config;
-      return await appendRowForUser(userId, spreadsheetId, range, values);
-    } else if (action.config?.operation === "read") {
-      const { spreadsheetId, range, userId } = action.config;
-      return await readSheetForUser(userId, spreadsheetId, range);
+    try {
+      const workflowId = action.workflowId || context._workflowId;
+      const { nodeId } = action;
+      const workflow = await WorkflowModel.findById(workflowId);
+      const userId = workflow.userId;
+      if (!userId) {
+        console.error("❌ No user associated with this workflow");
+        return { error: "No user associated with this workflow" };
+      }
+      console.log("🔍 Looking for Google Sheets config with:", {
+        workflowId,
+        nodeId,
+      });
+      if (!workflowId || !nodeId) {
+        throw new Error("Missing workflowId or nodeId");
+      }
+      const sheetData = await GoogleSheets.findOne({ workflowId, nodeId });
+      if (!sheetData) {
+        console.error("❌ No Google Sheet config found for this node");
+        return { error: "Google Sheets config not found" };
+      }
+      const { spreadsheetId, range, values } = sheetData;
+      // console.log("✅ Loaded Google Sheets config:", {
+      //   spreadsheetId,
+      //   range,
+      //   values,
+      // });
+      const result = await appendRowForUser(
+        userId,
+        spreadsheetId,
+        range,
+        values
+      );
+      console.log("✅ Google Sheets append result:", result);
+      return result;
+    } catch (error) {
+      console.error("❌ Error running Google Sheets action:", error);
+      return { error: error.message || "Google Sheets action failed" };
     }
-    return context;
   },
 
   google_drive: async (action, context) => {

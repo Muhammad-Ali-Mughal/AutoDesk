@@ -66,7 +66,12 @@ export const getGoogleSheetConfig = async (req, res) => {
     if (!sheetConfig) {
       return res.status(404).json({ message: "Config not found" });
     }
-    res.status(200).json({ success: true, config: sheetConfig });
+    const config = {
+      spreadsheetId: sheetConfig.spreadsheetId || "",
+      range: sheetConfig.range || "",
+      values: sheetConfig.values || "",
+    };
+    res.status(200).json({ success: true, config });
   } catch (error) {
     console.error("❌ Error fetching Google Sheets config:", error);
     res.status(500).json({ success: false, message: "Server error" });

@@ -3,14 +3,25 @@ import { google } from "googleapis";
 import { getAuthorizedClient } from "./googleClient.js";
 
 export async function appendRowForUser(userId, spreadsheetId, range, values) {
+  console.log("Appending Row for user:", userId);
   const auth = await getAuthorizedClient(userId);
+  if (!auth) {
+    console.warn(
+      `User ${userId} has no connected Google account, skipping row append`
+    );
+    return { error: "Google account not connected" };
+  }
+
   const sheets = google.sheets({ version: "v4", auth });
+
+  // Convert comma-separated string to array
+  const rowValues = values.split(",").map((v) => v.trim());
 
   const res = await sheets.spreadsheets.values.append({
     spreadsheetId,
     range, // e.g. "Sheet1!A1"
     valueInputOption: "RAW",
-    requestBody: { values: [values] },
+    requestBody: { values: [rowValues] }, // ✅ 2D array
   });
 
   return res.data;
