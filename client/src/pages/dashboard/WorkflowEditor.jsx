@@ -31,6 +31,7 @@ import GoogleDriveConfig from "../../configs/GoogleDriveConfig";
 import { useModuleSaveHandler } from "../../hooks/useWebhookSaveHandler";
 import { useSchedulerSaveHandler } from "../../hooks/useSchedulerSaveHandler";
 import { useEmailSaveHandler } from "../../hooks/useEmailSaveHandler";
+import { useGoogleSheetsSaveHandler } from "../../hooks/useGoogleSheetsSaveHandler";
 
 const nodeTypes = { custom: CustomNode };
 
@@ -64,6 +65,7 @@ function WorkflowEditorInner() {
   const { handleSaveModule } = useModuleSaveHandler(workflowId);
   const { handleSaveScheduler } = useSchedulerSaveHandler(workflowId);
   const { handleSaveEmail } = useEmailSaveHandler(workflowId);
+  const { handleSaveGoogleSheets } = useGoogleSheetsSaveHandler(workflowId);
 
   // ✅ Load workflow when editor opens
   useEffect(() => {
@@ -260,7 +262,7 @@ function WorkflowEditorInner() {
           },
         })),
         edges,
-        actions, // ✅ includes service now
+        actions,
         triggers: webhookNode
           ? {
               type: "webhook",
@@ -326,6 +328,8 @@ function WorkflowEditorInner() {
             handleSaveScheduler(activeNode, () => setPopupOpen(false));
           } else if (activeNode?.actionType === "email") {
             handleSaveEmail(activeNode, () => setPopupOpen(false));
+          } else if (activeNode?.actionType === "google_sheets") {
+            handleSaveGoogleSheets(activeNode, () => setPopupOpen(false));
           } else {
             handleSaveModule(activeNode, () => setPopupOpen(false));
           }
@@ -356,6 +360,7 @@ function WorkflowEditorInner() {
           <GoogleSheetsConfig
             node={activeNode}
             workflowId={workflowId}
+            onSave={() => setPopupOpen(false)}
             onChange={(updatedNode) => {
               setActiveNode(updatedNode);
               setNodes((nds) =>

@@ -4,6 +4,8 @@ import {
   readSheet,
   uploadFile,
   listFiles,
+  saveGoogleSheetsConfig,
+  getGoogleSheetConfig,
 } from "../controllers/googleController.js";
 import {
   googleAuth,
@@ -24,6 +26,8 @@ router.get("/callback", googleCallback);
 // Sheets
 router.post("/sheets/:workflowId/append", protect, appendRow);
 router.get("/sheets/:workflowId/read", protect, readSheet);
+router.post("/sheets/:workflowId/save", protect, saveGoogleSheetsConfig);
+router.get("/sheets/:workflowId/:nodeId", protect, getGoogleSheetConfig);
 
 // Drive
 router.post("/drive/:workflowId/upload", protect, uploadFile);

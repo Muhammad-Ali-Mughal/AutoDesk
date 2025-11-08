@@ -11,7 +11,7 @@ const oauth2Client = new google.auth.OAuth2(
 export const googleAuth = async (req, res) => {
   try {
     const scopes = [
-      "https://www.googleapis.com/auth/drive.file",
+      "https://www.googleapis.com/auth/drive",
       "https://www.googleapis.com/auth/spreadsheets",
       "email",
       "profile",
@@ -84,9 +84,19 @@ export const checkGoogleStatus = async (req, res) => {
     const { user } = req;
     const accounts = await GoogleAccount.find({ userId: user._id });
 
+    if (!accounts || accounts.length === 0) {
+      return res.json({ connected: false, accounts: [] });
+    }
+
+    const now = new Date();
+    // Filter out expired tokens
+    const validAccounts = accounts.filter(
+      (acc) => acc.expiryDate && new Date(acc.expiryDate) > now
+    );
+
     res.json({
-      connected: accounts.length > 0,
-      accounts: accounts.map((acc) => ({
+      connected: validAccounts.length > 0,
+      accounts: validAccounts.map((acc) => ({
         googleId: acc.googleId,
         email: acc.email,
         name: acc.name,

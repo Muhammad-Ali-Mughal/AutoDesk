@@ -20,13 +20,32 @@ export async function getAuthorizedClient(userId) {
     expiry_date: account.expiryDate?.getTime(),
   });
 
-  // auto-refresh token if expired
+  // Automatically refresh access token when expired
   client.on("tokens", async (tokens) => {
-    if (tokens.refresh_token) account.refreshToken = tokens.refresh_token;
-    if (tokens.access_token) account.accessToken = tokens.access_token;
-    if (tokens.expiry_date) account.expiryDate = new Date(tokens.expiry_date);
-    await account.save();
+    try {
+      if (tokens.refresh_token) account.refreshToken = tokens.refresh_token;
+      if (tokens.access_token) account.accessToken = tokens.access_token;
+      if (tokens.expiry_date) account.expiryDate = new Date(tokens.expiry_date);
+      await account.save();
+      console.log("🔄 Google tokens refreshed and saved for user:", userId);
+    } catch (err) {
+      console.error("⚠️ Failed to save refreshed tokens:", err);
+    }
   });
 
-  return client;
+  try {
+    await client.getAccessToken();
+    return client;
+  } catch (err) {
+    if (err.message.includes("invalid_grant")) {
+      console.warn(
+        "❌ Invalid or expired Google refresh token. Removing account:",
+        userId
+      );
+      await GoogleAccount.deleteMany({ userId });
+      return null;
+    }
+    console.error("⚠️ Failed to create authorized Google client:", err);
+    throw err;
+  }
 }

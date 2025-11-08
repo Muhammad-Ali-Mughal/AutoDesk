@@ -2,54 +2,98 @@ import React, { useState, useEffect } from "react";
 import api from "../utils/api";
 import toast from "react-hot-toast";
 
-function GoogleSheetsConfig({ node, workflowId, onChange }) {
+function GoogleSheetsConfig({ node, workflowId, onChange, onSave }) {
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [files, setFiles] = useState([]);
-  const [spreadsheetId, setSpreadsheetId] = useState(
-    node?.data?.config?.spreadsheetId || ""
-  );
-  const [range, setRange] = useState(node?.data?.config?.range || "");
-  const [values, setValues] = useState(node?.data?.config?.values || "");
 
+  const [spreadsheetId, setSpreadsheetId] = useState("");
+  const [range, setRange] = useState("");
+  const [values, setValues] = useState("");
+
+  // 🟢 Load config from DB on mount
   useEffect(() => {
-    // 1. Check connection status on mount
-    api
-      .get(`/google/status/${workflowId}`)
-      .then((res) => {
-        if (res.data.connected) {
-          setConnected(true);
-          // preload files if connected
-          api
-            .get(`/google/drive/${workflowId}/list`)
-            .then((filesRes) => setFiles(filesRes.data.files || []))
-            .catch((err) => console.error("Failed to fetch files", err));
+    const fetchNodeConfig = async () => {
+      try {
+        const res = await api.get(`/google/sheets/${workflowId}/${node.id}`);
+        if (res.data?.config) {
+          setSpreadsheetId(res.data.config.spreadsheetId || "");
+          setRange(res.data.config.range || "");
+          setValues(res.data.config.values || "");
+        } else {
+          // fallback to node data (if local unsaved config exists)
+          setSpreadsheetId(node?.data?.config?.spreadsheetId || "");
+          setRange(node?.data?.config?.range || "");
+          setValues(node?.data?.config?.values || "");
         }
-      })
-      .catch((err) => console.error("Failed to check Google status", err))
-      .finally(() => setLoading(false));
+      } catch (err) {
+        console.error("❌ Failed to load node config:", err);
+        // fallback if API fails
+        setSpreadsheetId(node?.data?.config?.spreadsheetId || "");
+        setRange(node?.data?.config?.range || "");
+        setValues(node?.data?.config?.values || "");
+      }
+    };
 
-    // 2. Handle postMessage from popup
-    const handleMessage = (event) => {
+    fetchNodeConfig();
+  }, [workflowId, node?.id]);
+
+  // 🟢 Handle Google connection and file listing
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchGoogleData = async () => {
+      try {
+        setLoading(true);
+        const statusRes = await api.get(`/google/status/${workflowId}`);
+        if (!isMounted) return;
+
+        if (statusRes.data.connected) {
+          setConnected(true);
+          const filesRes = await api.get(`/google/drive/${workflowId}/list`);
+          if (isMounted) setFiles(filesRes.data.files || []);
+        } else {
+          setConnected(false);
+          setFiles([]);
+        }
+      } catch (err) {
+        console.error("❌ Failed to fetch Google data:", err);
+        if (isMounted) {
+          setConnected(false);
+          setFiles([]);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchGoogleData();
+
+    // Handle auth success messages
+    const handleMessage = async (event) => {
       if (event.data?.type === "GOOGLE_AUTH_SUCCESS") {
         toast.success("✅ Google account connected!");
         setConnected(true);
-        api
-          .get(`/google/drive/${workflowId}/list`)
-          .then((res) => setFiles(res.data.files || []))
-          .catch((err) => console.error("Failed to fetch files", err));
+        try {
+          const filesRes = await api.get(`/google/drive/${workflowId}/list`);
+          if (isMounted) setFiles(filesRes.data.files || []);
+        } catch (err) {
+          console.error("❌ Failed to fetch files after auth:", err);
+        }
       }
     };
 
     window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
+    return () => {
+      isMounted = false;
+      window.removeEventListener("message", handleMessage);
+    };
   }, [workflowId]);
 
   const connectGoogle = () => {
     const authUrl = `${import.meta.env.VITE_SERVER_URI}/api/google/auth`;
-
-    const width = 500;
-    const height = 900;
+    const width = 600;
+    const height = 500;
     const left = window.screenX + (window.outerWidth - width) / 2;
     const top = window.screenY + (window.outerHeight - height) / 2;
 
@@ -59,16 +103,13 @@ function GoogleSheetsConfig({ node, workflowId, onChange }) {
       `width=${width},height=${height},left=${left},top=${top}`
     );
 
-    // Poll until window closes
     const timer = setInterval(() => {
       if (newWindow.closed) {
         clearInterval(timer);
-        // re-check status
         api.get(`/google/status/${workflowId}`).then((res) => {
           if (res.data.connected) {
             toast.success("Google account connected!");
             setConnected(true);
-            // fetch files
             api.get(`/google/drive/${workflowId}/list`).then((filesRes) => {
               setFiles(filesRes.data.files || []);
             });
@@ -80,19 +121,31 @@ function GoogleSheetsConfig({ node, workflowId, onChange }) {
     }, 1000);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!spreadsheetId || !range) {
       toast.error("Spreadsheet and range are required.");
       return;
     }
+
+    const newConfig = { spreadsheetId, range, values };
+
+    // Update local state and parent node
     onChange({
       ...node,
-      data: {
-        ...node.data,
-        config: { spreadsheetId, range, values },
-      },
+      data: { ...node.data, config: newConfig },
     });
-    toast.success("Google Sheets config updated!");
+
+    try {
+      await api.post(`/google/sheets/${workflowId}/save`, {
+        nodeId: node.id,
+        config: newConfig,
+      });
+      toast.success("✅ Google Sheets config saved!");
+      if (onSave) onSave(); // ✅ close popup
+    } catch (err) {
+      console.error("❌ Failed to save Google Sheets config:", err);
+      toast.error("Failed to save Google Sheets config.");
+    }
   };
 
   if (loading) return <p>Checking Google connection...</p>;
@@ -124,7 +177,7 @@ function GoogleSheetsConfig({ node, workflowId, onChange }) {
         >
           <option value="">-- Select File --</option>
           {files
-            .filter((f) => f.mimeType.includes("spreadsheet"))
+            .filter((f) => f.mimeType?.includes("spreadsheet"))
             .map((f) => (
               <option key={f.id} value={f.id}>
                 {f.name}

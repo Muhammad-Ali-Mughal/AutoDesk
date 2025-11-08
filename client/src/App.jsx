@@ -1,7 +1,6 @@
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { useEffect } from "react";
-import "./App.css";
 import Header from "./components/Header";
 import Home from "./pages/Home.jsx";
 import Footer from "./components/Footer.jsx";
