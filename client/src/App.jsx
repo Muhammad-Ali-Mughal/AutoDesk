@@ -16,12 +16,13 @@ import Analytics from "./pages/dashboard/Analytics.jsx";
 import Settings from "./pages/dashboard/Settings.jsx";
 import WorkflowEditor from "./pages/dashboard/WorkflowEditor.jsx";
 import { getCurrentUser } from "./store/slices/authSlice.js";
+import PageLoader from "./components/shared/PageLoader.jsx";
 
 // ProtectedRoute wrapper
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useSelector((state) => state.auth);
   if (loading) {
-    return <div>Loading...</div>;
+    return <PageLoader />;
   }
   if (!user) {
     return <Navigate to="/login" replace />;

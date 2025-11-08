@@ -28,7 +28,9 @@ export const registerUser = async (req, res) => {
     // 👉 Find default role (Owner/Admin)
     const defaultRole = await Role.findOne({ name: "Owner" });
     if (!defaultRole) {
-      return res.status(500).json({ message: "Default role not found. Please seed roles." });
+      return res
+        .status(500)
+        .json({ message: "Default role not found. Please seed roles." });
     }
 
     // 👉 Create user first (without org)
@@ -76,7 +78,6 @@ export const registerUser = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
-
 
 // Login User
 
