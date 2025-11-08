@@ -2,9 +2,21 @@ import { FaEdit, FaCopy, FaTrash } from "react-icons/fa";
 
 export default function ContextMenu({ x, y, onClose, onAction }) {
   const menuItems = [
-    { label: "Edit", action: "edit", icon: <FaEdit className="text-dark-600" /> },
-    { label: "Duplicate", action: "duplicate", icon: <FaCopy className="text-dark-600" /> },
-    { label: "Delete", action: "delete", icon: <FaTrash className="text-dark-600" /> },
+    {
+      label: "Edit",
+      action: "edit",
+      icon: <FaEdit className="text-dark-600" />,
+    },
+    {
+      label: "Duplicate",
+      action: "duplicate",
+      icon: <FaCopy className="text-dark-600" />,
+    },
+    {
+      label: "Delete",
+      action: "delete",
+      icon: <FaTrash className="text-dark-600" />,
+    },
   ];
 
   return (
