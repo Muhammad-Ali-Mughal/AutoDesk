@@ -140,8 +140,8 @@ function GoogleSheetsConfig({ node, workflowId, onChange, onSave }) {
         nodeId: node.id,
         config: newConfig,
       });
-      toast.success("✅ Google Sheets config saved!");
-      if (onSave) onSave(); // ✅ close popup
+      toast.success("Google Sheets config saved!");
+      if (onSave) onSave();
     } catch (err) {
       console.error("❌ Failed to save Google Sheets config:", err);
       toast.error("Failed to save Google Sheets config.");
