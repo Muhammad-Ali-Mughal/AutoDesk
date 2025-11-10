@@ -12,6 +12,7 @@ import emailRoutes from "./routes/emailRoutes.js";
 import googleRoutes from "./routes/googleRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoute.js";
 import integrationRoutes from "./routes/integrationRoutes.js";
+import settingsRoutes from "./routes/settingsRoutes.js";
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.use("/api/email", emailRoutes);
 app.use("/api/google", googleRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/integrations", integrationRoutes);
+app.use("/api/settings", settingsRoutes);
 
 // Public Routes
 app.use("/api/public/webhooks", publicWebhookRoutes);

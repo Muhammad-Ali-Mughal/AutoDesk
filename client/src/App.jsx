@@ -15,6 +15,7 @@ import Integrations from "./pages/dashboard/Integrations.jsx";
 import Analytics from "./pages/dashboard/Analytics.jsx";
 import Settings from "./pages/dashboard/Settings.jsx";
 import WorkflowEditor from "./pages/dashboard/WorkflowEditor.jsx";
+import Plans from "./pages/dashboard/Plans.jsx";
 import { getCurrentUser } from "./store/slices/authSlice.js";
 import PageLoader from "./components/shared/PageLoader.jsx";
 
@@ -69,6 +70,7 @@ function App() {
           <Route path="integrations" element={<Integrations />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="plans" element={<Plans />} />
         </Route>
 
         <Route

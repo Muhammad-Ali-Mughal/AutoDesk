@@ -26,6 +26,8 @@ const userSchema = new mongoose.Schema(
       minlength: [6, "Password must be at least 6 characters"],
       select: false,
     },
+
+    // Relations
     roleId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Role",
@@ -34,23 +36,65 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Organization",
     },
+
+    // Subscription & plan details
     subscription: {
       planId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Subscription",
+      },
+      planName: {
+        type: String,
+        default: "Free",
+      },
+      tier: {
+        type: String,
+        enum: ["free", "basic", "pro", "enterprise"],
+        default: "free",
       },
       status: {
         type: String,
         enum: ["active", "inactive", "cancelled", "expired"],
         default: "inactive",
       },
+      startedAt: {
+        type: Date,
+      },
       expiresAt: {
+        type: Date,
+      },
+      renewsAt: {
         type: Date,
       },
       paymentId: {
         type: String,
       },
     },
+
+    // Credit tracking
+    credits: {
+      totalCredits: {
+        type: Number,
+        default: 100, // Default for free users
+      },
+      usedCredits: {
+        type: Number,
+        default: 0,
+      },
+      remainingCredits: {
+        type: Number,
+        default: 100,
+      },
+      lastReset: {
+        type: Date,
+        default: Date.now,
+      },
+      nextReset: {
+        type: Date,
+      },
+    },
+
+    // Usage tracking
     usage: {
       workflowRun: {
         type: Number,
@@ -67,7 +111,6 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Hash password before saving
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
 
@@ -76,9 +119,29 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-// Compare password method
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
+};
+
+userSchema.methods.useCredits = function (amount) {
+  if (this.credits.remainingCredits < amount) {
+    throw new Error("Not enough credits");
+  }
+  this.credits.usedCredits += amount;
+  this.credits.remainingCredits -= amount;
+  return this.save();
+};
+
+userSchema.methods.resetCredits = function (
+  amount = this.credits.totalCredits
+) {
+  this.credits.usedCredits = 0;
+  this.credits.remainingCredits = amount;
+  this.credits.lastReset = new Date();
+  this.credits.nextReset = new Date(
+    new Date().setMonth(new Date().getMonth() + 1)
+  );
+  return this.save();
 };
 
 export default mongoose.model("User", userSchema);

@@ -12,7 +12,7 @@ export default function Modal({ isOpen, onClose, children }) {
         >
           {/* Overlay */}
           <motion.div
-            className="absolute inset-0 bg-black bg-opacity-40"
+            className="absolute inset-0 bg-[#000000b0] bg-opacity-40"
             onClick={onClose}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -21,7 +21,7 @@ export default function Modal({ isOpen, onClose, children }) {
 
           {/* Modal Content */}
           <motion.div
-            className="relative bg-white rounded-xl shadow-xl p-6 w-full max-w-md z-10"
+            className="relative bg-white rounded-xl shadow-xl w-full max-w-md z-10"
             initial={{ scale: 0.8, opacity: 0, y: 40 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.8, opacity: 0, y: 40 }}

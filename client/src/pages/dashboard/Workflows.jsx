@@ -232,12 +232,86 @@ export default function Workflows() {
         {/* Modals (Create + Delete) */}
         {isModalOpen && (
           <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-            {/* ...Create Workflow form */}
+            <div className="p-6 bg-white rounded-xl w-full max-w-md mx-auto shadow-lg">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                Create New Workflow
+              </h2>
+
+              <form onSubmit={handleCreateWorkflow} className="space-y-4">
+                <div>
+                  <label className="block text-gray-600 text-sm mb-1">
+                    Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#642c8f]"
+                    placeholder="Enter workflow name"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-600 text-sm mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={newDescription}
+                    onChange={(e) => setNewDescription(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#642c8f]"
+                    placeholder="Enter workflow description"
+                    rows="3"
+                    required
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-lg bg-[#642c8f] text-white hover:bg-[#7a3bb3] transition"
+                  >
+                    Create
+                  </button>
+                </div>
+              </form>
+            </div>
           </Modal>
         )}
+
         {deleteTarget && (
           <Modal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
-            {/* ...Delete confirmation */}
+            <div className="p-6 bg-white rounded-xl w-full max-w-md mx-auto shadow-lg text-center">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                Delete Workflow
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete{" "}
+                <span className="font-semibold">{deleteTarget.name}</span>?
+              </p>
+
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={() => setDeleteTarget(null)}
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteWorkflow}
+                  className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
           </Modal>
         )}
       </div>
