@@ -6,17 +6,11 @@ import GoogleAuth from "../models/GoogleAccount.model.js";
 export const getUserIntegrations = async (req, res) => {
   try {
     const userId = req.user?._id;
-
-    console.log("UserID:", userId);
-
     const [integrations, webhooks, googleAuths] = await Promise.all([
-      Integration.find({}),
-      Webhook.find({ user: userId }),
-      GoogleAuth.find({ user: userId }),
+      Integration.find({ userId }),
+      Webhook.find({ userId }),
+      GoogleAuth.find({ userId }),
     ]);
-
-    console.log({ integrations, webhooks, googleAuths });
-
     res.status(200).json({
       integrations,
       webhooks,

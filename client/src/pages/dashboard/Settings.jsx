@@ -40,8 +40,8 @@ export default function Settings() {
         setSubscription(subscriptionData);
 
         setCredits({
-          usedCredits: subscriptionData.credits?.usedCredits || 0,
-          totalCredits: subscriptionData.credits?.totalCredits || 0,
+          usedCredits: subscriptionData.credits?.used || 0,
+          totalCredits: subscriptionData.credits?.total || 0,
         });
       } catch (err) {
         console.error("Error fetching settings:", err);

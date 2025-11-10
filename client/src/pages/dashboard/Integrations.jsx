@@ -11,34 +11,56 @@ export default function Integrations() {
     y: 0,
     targetId: null,
   });
-
-  // Fetch integrations from backend
   useEffect(() => {
     const fetchIntegrations = async () => {
       try {
         const res = await api.get("/integrations");
-        const data = res.data.integrations || [];
+        const {
+          integrations: baseIntegrations = [],
+          webhooks = [],
+          googleAuths = [],
+        } = res.data ?? {};
 
-        // Map userData to a consistent 'account' property for frontend
-        const formatted = data.map((integration) => {
-          let accounts = [];
-          if (integration.userData && integration.userData.length > 0) {
-            accounts = integration.userData.map((u) => {
-              if (integration.type === "google_sheets") return u.email;
-              if (integration.type === "webhook") return u.url;
-              return u.account || u.email || u.id;
-            });
-          }
+        const normalize = [];
 
-          return {
-            id: integration.id,
-            type: integration.type,
-            label: integration.label,
-            account: accounts.join(", ") || null,
-          };
-        });
+        normalize.push(
+          ...baseIntegrations.map((integration) => {
+            const type = integration.service ?? integration.type ?? "custom";
+            const accounts =
+              integration.userData?.map((u) => {
+                if (type === "google_sheets") return u.email;
+                if (type === "webhook") return u.url;
+                return u.account || u.email || u.id;
+              }) ?? [];
 
-        setIntegrations(formatted);
+            return {
+              id: integration._id ?? integration.id,
+              type,
+              label: integration.label ?? type,
+              account: accounts.join(", ") || null,
+            };
+          })
+        );
+
+        normalize.push(
+          ...webhooks.map((hook) => ({
+            id: hook._id ?? hook.id,
+            type: "webhook",
+            label: hook.event ?? "Webhook",
+            account: hook.url,
+          }))
+        );
+
+        normalize.push(
+          ...googleAuths.map((auth) => ({
+            id: auth._id ?? auth.id,
+            type: "google_sheets",
+            label: auth.email ?? auth.name ?? "Google Account",
+            account: auth.email ?? auth.name ?? null,
+          }))
+        );
+
+        setIntegrations(normalize);
       } catch (err) {
         console.error("Failed to fetch integrations:", err);
       }

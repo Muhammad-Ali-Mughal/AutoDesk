@@ -13,6 +13,7 @@ import googleRoutes from "./routes/googleRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoute.js";
 import integrationRoutes from "./routes/integrationRoutes.js";
 import settingsRoutes from "./routes/settingsRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use("/api/google", googleRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/integrations", integrationRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // Public Routes
 app.use("/api/public/webhooks", publicWebhookRoutes);
