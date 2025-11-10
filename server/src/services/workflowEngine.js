@@ -5,6 +5,8 @@ import { appendRowForUser, readSheetForUser } from "./googleSheetsService.js";
 import { uploadFileForUser, listFilesForUser } from "./googleDriveService.js";
 import GoogleSheets from "../models/GoogleSheets.model.js";
 import WorkflowModel from "../models/Workflow.model.js";
+import { checkAndConsumeCredit } from "../utils/creditManager.js";
+import UserModel from "../models/User.model.js";
 
 const actionHandlers = {
   webhook: async (action, context) => {
@@ -145,7 +147,22 @@ export async function executeWorkflow(
   });
 
   let context = inputData;
+  try {
+    const user = await UserModel.findById(workflow.userId);
+    if (!user) throw new Error("User not found for this workflow");
 
+    await checkAndConsumeCredit(user._id);
+    console.log(
+      `💳 Credit deducted for ${user.email}. Remaining: ${user.credits}`
+    );
+  } catch (err) {
+    console.error("❌ Credit check failed:", err.message);
+    log.status = "failed";
+    log.errorMessage = err.message;
+    log.finishedAt = new Date();
+    await log.save();
+    throw err;
+  }
   let triggerNode = workflow.nodes.find(
     (n) => n.type === "trigger" || n.data.label === "webhook"
   );

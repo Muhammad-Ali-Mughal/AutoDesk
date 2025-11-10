@@ -11,18 +11,37 @@ export const getSettings = async (req, res) => {
     const user = await User.findById(req.user._id).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    // Ensure credits object is valid
+    const credits =
+      user.credits && typeof user.credits === "object"
+        ? user.credits
+        : {
+            totalCredits: 100,
+            usedCredits: 0,
+            remainingCredits: 100,
+            lastReset: null,
+            nextReset: null,
+          };
+
     res.json({
       profile: {
         name: user.name,
         email: user.email,
       },
       subscription: {
-        plan: user.plan || "Free",
-        credits: user.credits || 0,
-        renewDate: user.renewDate || null,
+        plan: user.subscription?.planName || "Free",
+        credits: {
+          total: Number(credits.totalCredits) || 0,
+          used: Number(credits.usedCredits) || 0,
+          remaining: Number(credits.remainingCredits) || 0,
+          lastReset: credits.lastReset || null,
+          nextReset: credits.nextReset || null,
+        },
+        renewDate: user.subscription?.renewsAt || null,
       },
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.message });
   }
 };
