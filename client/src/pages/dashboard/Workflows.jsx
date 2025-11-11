@@ -162,6 +162,22 @@ export default function Workflows() {
                 className="flex-1 flex flex-col gap-2"
               >
                 <div className="flex gap-2 mt-1 text-[2rem]">
+                  {/* Webhook Trigger Icon */}
+                  {wf.triggers?.type === "webhook" && (
+                    <span
+                      className="p-2 rounded-full flex items-center justify-center"
+                      style={{
+                        background: actionStyles.webhook.gradient,
+                        color: "#fff",
+                      }}
+                    >
+                      {actionStyles.webhook.icon && (
+                        <actionStyles.webhook.icon />
+                      )}
+                    </span>
+                  )}
+
+                  {/* Action Icons */}
                   {wf.actions?.length > 0 ? (
                     wf.actions.map((action, idx) => {
                       const rawType = (action.type || "")

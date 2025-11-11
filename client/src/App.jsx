@@ -18,6 +18,7 @@ import WorkflowEditor from "./pages/dashboard/WorkflowEditor.jsx";
 import Plans from "./pages/dashboard/Plans.jsx";
 import { getCurrentUser } from "./store/slices/authSlice.js";
 import PageLoader from "./components/shared/PageLoader.jsx";
+import CreateAIWorkflow from "./pages/dashboard/CreateAIWorkflow.jsx";
 
 // ProtectedRoute wrapper
 const ProtectedRoute = ({ children }) => {
@@ -67,6 +68,7 @@ function App() {
         >
           <Route index element={<DashboardHome />} />
           <Route path="workflows" element={<Workflows />} />
+          <Route path="create-ai-workflow" element={<CreateAIWorkflow />} />
           <Route path="integrations" element={<Integrations />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="settings" element={<Settings />} />

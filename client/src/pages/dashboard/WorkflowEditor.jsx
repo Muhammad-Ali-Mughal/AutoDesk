@@ -33,7 +33,11 @@ import { useSchedulerSaveHandler } from "../../hooks/useSchedulerSaveHandler";
 import { useEmailSaveHandler } from "../../hooks/useEmailSaveHandler";
 import { useGoogleSheetsSaveHandler } from "../../hooks/useGoogleSheetsSaveHandler";
 
-const nodeTypes = { custom: CustomNode };
+const nodeTypes = {
+  custom: CustomNode,
+  trigger: CustomNode,
+  action: CustomNode,
+};
 
 const getActionType = (label = "") => {
   const normalized = label.toLowerCase().trim().replace(/\s+/g, "_");
@@ -244,15 +248,14 @@ function WorkflowEditorInner() {
       setSaving(true);
 
       const webhookNode = nodes.find((n) => n.data?.actionType === "webhook");
-      const actions = nodes.map((n) => {
-        const { actionType, service, config } = n.data;
-        return {
+      const actions = nodes
+        .filter((n) => n.type !== "trigger" && n.data?.actionType !== "webhook") // or n.data?.isTrigger flag if you have one
+        .map((n) => ({
           nodeId: n.id,
-          type: actionType,
-          service: service || actionType,
-          config: config || {},
-        };
-      });
+          type: n.data.actionType,
+          service: n.data.service || n.data.actionType,
+          config: n.data.config || {},
+        }));
       const payload = {
         nodes: nodes.map((n) => ({
           ...n,

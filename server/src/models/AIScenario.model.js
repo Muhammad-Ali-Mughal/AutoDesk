@@ -32,8 +32,10 @@ const aiScenarioSchema = new mongoose.Schema(
       required: [true, "Model is required"],
       enum: [
         "gpt-3.5-turbo",
+        "gpt-4o-mini",
         "gpt-4",
         "gpt-4-turbo",
+        "gpt-5",
         "claude-3-haiku",
         "claude-3-sonnet",
         "claude-3-opus",

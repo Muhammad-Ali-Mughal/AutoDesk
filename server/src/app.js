@@ -14,6 +14,7 @@ import analyticsRoutes from "./routes/analyticsRoute.js";
 import integrationRoutes from "./routes/integrationRoutes.js";
 import settingsRoutes from "./routes/settingsRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
+import aiWorkflowRoutes from "./routes/aiWorkflowRoutes.js";
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/integrations", integrationRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/ai", aiWorkflowRoutes);
 
 // Public Routes
 app.use("/api/public/webhooks", publicWebhookRoutes);
