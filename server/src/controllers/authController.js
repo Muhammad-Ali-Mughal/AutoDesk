@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.model.js";
 import Organization from "../models/Organization.model.js";
 import Role from "../models/Role.model.js";
+import Team from "../models/Team.model.js";
 import { validationResult } from "express-validator";
 
 const generateToken = (userId) => {
@@ -13,48 +14,56 @@ const generateToken = (userId) => {
 export const registerUser = async (req, res) => {
   try {
     const errors = validationResult(req);
-    if (!errors.isEmpty()) {
+    if (!errors.isEmpty())
       return res.status(400).json({ errors: errors.array() });
-    }
 
-    const { name, email, password } = req.body;
+    const { name, email, password, organizationName, teamName } = req.body;
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    if (existingUser)
       return res.status(400).json({ message: "Email already registered" });
-    }
 
-    // 👉 Find default role (Owner/Admin)
-    const defaultRole = await Role.findOne({ name: "Owner" });
-    if (!defaultRole) {
+    // Default role
+    const defaultRole = await Role.findOne({ name: "Admin" });
+    if (!defaultRole)
       return res
         .status(500)
         .json({ message: "Default role not found. Please seed roles." });
-    }
 
-    // 👉 Create user first (without org)
+    // 1️⃣ Create User
     const user = new User({
       name,
       email,
       password,
-      roleId: defaultRole._id, // assign role here
+      roleId: defaultRole._id,
     });
+    await user.save();
 
-    // 👉 Create organization for this user
+    // 2️⃣ Create Organization
     const organization = new Organization({
-      name: `${name}'s Organization`, // can be random or user-based
+      name: organizationName || `${name}'s Organization`,
       ownerId: user._id,
       users: [user._id],
     });
     await organization.save();
 
-    // 👉 Assign orgId to user
+    // 3️⃣ Create Default Team
+    const team = new Team({
+      name: teamName || "Default Team",
+      organizationId: organization._id,
+      users: [user._id],
+    });
+    await team.save();
+
+    // 4️⃣ Update User with org & team
     user.organizationId = organization._id;
+    user.teamId = team._id;
     await user.save();
 
-    // 👉 Generate token
+    // 5️⃣ Generate JWT Token
     const token = generateToken(user._id);
+
     res
       .cookie("token", token, {
         httpOnly: true,
@@ -71,6 +80,7 @@ export const registerUser = async (req, res) => {
           email: user.email,
           roleId: user.roleId,
           organizationId: user.organizationId,
+          teamId: user.teamId,
         },
       });
   } catch (err) {

@@ -15,6 +15,9 @@ import integrationRoutes from "./routes/integrationRoutes.js";
 import settingsRoutes from "./routes/settingsRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import aiWorkflowRoutes from "./routes/aiWorkflowRoutes.js";
+import organizationRoutes from "./routes/organizationRoutes.js";
+import teamRoutes from "./routes/teamRoutes.js";
+import roleRoutes from "./routes/roleRoutes.js";
 
 const app = express();
 
@@ -31,6 +34,9 @@ app.use(cookieParser());
 
 // Routes
 app.use("/api/auth", authRoute);
+app.use("/api/organizations", organizationRoutes);
+app.use("/api/teams", teamRoutes);
+app.use("/api/roles", roleRoutes);
 app.use("/api/workflows", workflowRoute);
 app.use("/api/triggers", triggerRoutes);
 app.use("/api/schedules", scheduleRoutes);
@@ -44,7 +50,6 @@ app.use("/api/ai", aiWorkflowRoutes);
 
 // Public Routes
 app.use("/api/public/webhooks", publicWebhookRoutes);
-
 app.get("/", (req, res) => {
   res.status(200).json({
     status: "OK",

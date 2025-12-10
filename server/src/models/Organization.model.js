@@ -8,10 +8,10 @@ const organizationSchema = new mongoose.Schema(
       trim: true,
       maxlength: [100, "Organization name cannot exceed 100 characters"],
     },
-    ownerId: {
+    adminId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: [true, "Owner is required"],
+      required: [true, "Admin is required"],
     },
     users: [
       {
