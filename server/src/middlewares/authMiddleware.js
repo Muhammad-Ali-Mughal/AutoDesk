@@ -11,16 +11,27 @@ export const protect = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id).select(
-      "_id organizationId email role"
-    );
+    const user = await User.findById(decoded.id).populate("roleId");
 
-    if (!req.user) {
-      return res.status(401).json({ message: "User not found" });
-    }
+    if (!user) return res.status(401).json({ message: "User not found" });
+
+    // Attach the full user object (with role) to req.user
+    req.user = {
+      _id: user._id,
+      email: user.email,
+      organizationId: user.organizationId,
+      role: user.roleId, // populated role object
+    };
 
     next();
   } catch (err) {
     res.status(401).json({ message: "Token is invalid or expired" });
   }
+};
+
+export const isSuperadmin = (req, res, next) => {
+  if (!req.user.role || req.user.role.name !== "Superadmin") {
+    return res.status(403).json({ message: "Superadmin access required" });
+  }
+  next();
 };

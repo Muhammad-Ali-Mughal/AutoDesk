@@ -19,6 +19,10 @@ import Plans from "./pages/dashboard/Plans.jsx";
 import { getCurrentUser } from "./store/slices/authSlice.js";
 import PageLoader from "./components/shared/PageLoader.jsx";
 import CreateAIWorkflow from "./pages/dashboard/CreateAIWorkflow.jsx";
+import Organizations from "./pages/dashboard/Organizations.jsx";
+import TeamUsers from "./pages/dashboard/TeamUsers.jsx";
+
+import AdminRoutes from "./admin/adminRoutes.jsx";
 
 // ProtectedRoute wrapper
 const ProtectedRoute = ({ children }) => {
@@ -29,6 +33,18 @@ const ProtectedRoute = ({ children }) => {
   if (!user) {
     return <Navigate to="/login" replace />;
   }
+  return children;
+};
+
+const SuperAdminProtectedRoute = ({ children }) => {
+  const { user, loading } = useSelector((state) => state.auth);
+
+  if (loading) return <PageLoader />;
+
+  if (!user || user.role.name !== "Superadmin") {
+    return <Navigate to="/" replace />;
+  }
+
   return children;
 };
 
@@ -44,6 +60,7 @@ function App() {
 
   const hideHeaderFooter =
     location.pathname.startsWith("/dashboard") ||
+    location.pathname.startsWith("/superadmin") ||
     location.pathname === "/login" ||
     location.pathname === "/signup";
 
@@ -57,6 +74,16 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
 
+        {/* Super Admin Protected Pannel */}
+        <Route
+          path="/superadmin/*"
+          element={
+            <SuperAdminProtectedRoute>
+              <AdminRoutes />
+            </SuperAdminProtectedRoute>
+          }
+        />
+
         {/* Protected dashboard routes */}
         <Route
           path="/dashboard"
@@ -69,6 +96,11 @@ function App() {
           <Route index element={<DashboardHome />} />
           <Route path="workflows" element={<Workflows />} />
           <Route path="create-ai-workflow" element={<CreateAIWorkflow />} />
+          <Route path="organizations" element={<Organizations />} />
+          <Route
+            path="organizations/:orgId/teams/:teamId/users"
+            element={<TeamUsers />}
+          />
           <Route path="integrations" element={<Integrations />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="settings" element={<Settings />} />

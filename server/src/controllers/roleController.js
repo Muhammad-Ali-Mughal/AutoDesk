@@ -39,3 +39,19 @@ export const updateRolePermissions = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+// Delete a role
+export const deleteRole = async (req, res) => {
+  try {
+    const { roleId } = req.params;
+    const role = await Role.findById(roleId);
+    if (!role) return res.status(404).json({ message: "Role not found" });
+    if (role.name === "Superadmin") {
+      return res.status(403).json({ message: "Cannot delete Superadmin role" });
+    }
+    await role.deleteOne();
+    res.json({ success: true, message: "Role deleted" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

@@ -73,25 +73,20 @@ const userSchema = new mongoose.Schema(
 
     // Credit tracking
     credits: {
-      totalCredits: {
-        type: Number,
-        default: 100, // Default for free users
+      type: {
+        totalCredits: { type: Number, default: 100 },
+        usedCredits: { type: Number, default: 0 },
+        remainingCredits: { type: Number, default: 100 },
+        lastReset: { type: Date, default: Date.now },
+        nextReset: { type: Date, default: Date.now },
       },
-      usedCredits: {
-        type: Number,
-        default: 0,
-      },
-      remainingCredits: {
-        type: Number,
-        default: 100,
-      },
-      lastReset: {
-        type: Date,
-        default: Date.now,
-      },
-      nextReset: {
-        type: Date,
-      },
+      default: () => ({
+        totalCredits: 100,
+        usedCredits: 0,
+        remainingCredits: 100,
+        lastReset: Date.now(),
+        nextReset: Date.now(),
+      }),
     },
 
     // Usage tracking

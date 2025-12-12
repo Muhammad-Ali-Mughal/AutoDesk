@@ -5,19 +5,32 @@ import {
   addUserToOrganization,
   getAllOrganizations,
 } from "../controllers/organizationController.js";
-import { protect } from "../middlewares/authMiddleware.js";
+import { protect, isSuperadmin } from "../middlewares/authMiddleware.js";
 import { authorizeRoles } from "../middlewares/roleBasedAccessControl.js";
 
 const router = express.Router();
 
-router.post("/", protect, authorizeRoles("Superadmin"), createOrganization);
+router.post(
+  "/",
+  protect,
+  authorizeRoles("Admin"),
+  isSuperadmin,
+  createOrganization
+);
 router.get("/me", protect, getMyOrganization);
 router.post(
   "/add-user",
   protect,
   authorizeRoles("Admin"),
+  isSuperadmin,
   addUserToOrganization
 );
-router.get("/all", protect, authorizeRoles("Superadmin"), getAllOrganizations);
+router.get(
+  "/",
+  protect,
+  // authorizeRoles("Superadmin"),
+  isSuperadmin,
+  getAllOrganizations
+);
 
 export default router;

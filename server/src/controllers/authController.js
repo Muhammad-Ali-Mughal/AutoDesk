@@ -43,7 +43,7 @@ export const registerUser = async (req, res) => {
     // 2️⃣ Create Organization
     const organization = new Organization({
       name: organizationName || `${name}'s Organization`,
-      ownerId: user._id,
+      adminId: user._id,
       users: [user._id],
     });
     await organization.save();

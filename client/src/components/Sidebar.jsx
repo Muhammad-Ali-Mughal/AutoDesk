@@ -7,13 +7,17 @@ import {
   FaSignOutAlt,
   FaLayerGroup,
   FaStarOfLife,
+  FaUserShield,
+  FaBuilding,
 } from "react-icons/fa";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../store/slices/authSlice.js";
+import { useEffect } from "react";
 
 export default function Sidebar() {
   const isDarkMode = useSelector((state) => state.darkMode.isDarkMode);
+  const { user } = useSelector((state) => state.auth);
   const location = useLocation();
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -21,20 +25,36 @@ export default function Sidebar() {
   const menuItems = [
     { name: "Dashboard", path: "/dashboard", icon: <FaTachometerAlt /> },
     {
-      name: "Workflows",
-      path: "/dashboard/workflows",
-      icon: <FaProjectDiagram />,
-    },
-    {
       name: "Make with AI",
       path: "/dashboard/create-ai-workflow",
       icon: <FaStarOfLife />,
+    },
+    {
+      name: "My Organizations",
+      path: "/dashboard/organizations",
+      icon: <FaBuilding />,
+    },
+    {
+      name: "Workflows",
+      path: "/dashboard/workflows",
+      icon: <FaProjectDiagram />,
     },
     { name: "Integrations", path: "/dashboard/integrations", icon: <FaPlug /> },
     { name: "Analytics", path: "/dashboard/analytics", icon: <FaChartBar /> },
     { name: "Plans", path: "/dashboard/plans", icon: <FaLayerGroup /> },
     { name: "Settings", path: "/dashboard/settings", icon: <FaCog /> },
   ];
+
+  // Insert superadmin link at the top if user is superadmin
+  useEffect(() => {
+    if (user.role.name == "Superadmin") {
+      menuItems.unshift({
+        name: "Superadmin",
+        path: "/superadmin",
+        icon: <FaUserShield />,
+      });
+    }
+  }, []);
 
   const handleLogout = async () => {
     await dispatch(logout());
