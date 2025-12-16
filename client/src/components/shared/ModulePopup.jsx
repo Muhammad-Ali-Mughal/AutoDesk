@@ -22,10 +22,7 @@ function ModulePopup({
           exit={{ opacity: 0 }}
         >
           {/* Overlay */}
-          <div
-            className="absolute inset-0 bg-black/30"
-            onClick={onClose}
-          />
+          <div className="absolute inset-0 bg-black/30" onClick={onClose} />
 
           {/* Modal */}
           <motion.div
@@ -52,10 +49,10 @@ function ModulePopup({
             <div className="p-4">{children}</div>
 
             {/* Footer */}
-            <div className="flex justify-end gap-3 border-t px-4 py-3 bg-gray-50">
+            <div className="flex justify-end gap-3 px-4 py-3 bg-gray-200">
               <button
                 onClick={onClose}
-                className="px-4 py-2 rounded border border-gray-300 hover:bg-gray-100"
+                className="px-4 py-2 rounded border text-gray-500 bg-gray-100 border-gray-300 hover:bg-gray-300"
               >
                 Cancel
               </button>

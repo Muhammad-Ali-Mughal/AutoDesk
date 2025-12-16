@@ -13,11 +13,19 @@ export function useModuleSaveHandler(workflowId, userId, organizationId) {
 
         const actionType = node.data?.actionType || node.actionType;
 
-        // ✅ Handle webhook nodes
+        /**
+         * ==========================
+         * WEBHOOK MODULE SAVE
+         * ==========================
+         */
         if (actionType === "webhook") {
           const secret = node.data?.secret;
+          const requestMethod = node.data?.requestMethod || "POST";
+
           if (!secret) {
-            toast.error("No webhook secret found. Open the webhook config first.");
+            toast.error(
+              "No webhook secret found. Open the webhook config first."
+            );
             return;
           }
 
@@ -26,24 +34,23 @@ export function useModuleSaveHandler(workflowId, userId, organizationId) {
             userId,
             organizationId,
             workflowId,
-            url: `${import.meta.env.VITE_SERVER_URI}/api/public/webhooks/${workflowId}/${secret}`,
-            event: "workflow.started", // or dynamic from node.data if configurable
+            url: `${
+              import.meta.env.VITE_SERVER_URI
+            }/api/triggers/public/${workflowId}/${secret}`,
+            event: "workflow.started",
             status: "active",
-            secret, // save the secret here
+            secret,
+            requestMethod, // ✅ SAVE REQUEST METHOD
           };
 
-          // Call backend to create/update webhook
           await api.put(`/triggers/${workflowId}/update-trigger`, payload);
-          // console.log(payload);
-          
-
           toast.success("Webhook saved successfully.");
         }
 
-        // Save other module types if needed
-        // TODO: Add handling for email, slack, etc.
-
-        // if (typeof closePopup === "function") closePopup();
+        /**
+         * TODO:
+         * - Add handling for other modules (email, slack, delay, etc.)
+         */
       } catch (err) {
         console.error("handleSaveModule error:", err);
 

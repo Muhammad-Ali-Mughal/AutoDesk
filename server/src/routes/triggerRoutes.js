@@ -3,7 +3,7 @@ import {
   triggerWebhook,
   updateWorkflowWebhook,
   publicWebhookTrigger,
-  getTriggerSecret
+  getTriggerSecret,
 } from "../controllers/triggerController.js";
 import { protect } from "../middlewares/authMiddleware.js";
 
@@ -15,6 +15,6 @@ router.post("/:workflowId/webhook", protect, triggerWebhook);
 
 router.put("/:workflowId/update-trigger", protect, updateWorkflowWebhook);
 
-router.post("/public/:workflowId/:secret", publicWebhookTrigger);
+router.all("/public/:workflowId/:secret", publicWebhookTrigger);
 
 export default router;

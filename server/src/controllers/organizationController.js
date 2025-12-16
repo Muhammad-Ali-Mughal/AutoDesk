@@ -25,7 +25,6 @@ export const createOrganization = async (req, res) => {
 // 📌 Get my organization (Admin)
 export const getMyOrganization = async (req, res) => {
   try {
-    console.log(req.user);
     const org = await Organization.findById(req.user.organizationId)
       .populate("users", "name email roleId")
       .populate("adminId", "name email");

@@ -148,101 +148,111 @@ export default function Workflows() {
 
         {/* Workflows List */}
         <div className="space-y-4">
-          {workflows.map((wf, index) => (
-            <motion.div
-              key={wf._id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="bg-white shadow rounded-xl p-4 flex items-center justify-between hover:shadow-lg transition"
-            >
-              {/* Left Section */}
-              <Link
-                to={`/dashboard/workflows/editor/${wf._id}`}
-                className="flex-1 flex flex-col gap-2"
+          {workflows ? (
+            workflows.map((wf, index) => (
+              <motion.div
+                key={wf._id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+                className="bg-white shadow rounded-xl p-4 flex items-center justify-between hover:shadow-lg transition"
               >
-                <div className="flex gap-2 mt-1 text-[2rem]">
-                  {/* Webhook Trigger Icon */}
-                  {wf.triggers?.type === "webhook" && (
-                    <span
-                      className="p-2 rounded-full flex items-center justify-center"
-                      style={{
-                        background: actionStyles.webhook.gradient,
-                        color: "#fff",
-                      }}
-                    >
-                      {actionStyles.webhook.icon && (
-                        <actionStyles.webhook.icon />
-                      )}
-                    </span>
-                  )}
-
-                  {/* Action Icons */}
-                  {wf.actions?.length > 0 ? (
-                    wf.actions.map((action, idx) => {
-                      const rawType = (action.type || "")
-                        .toString()
-                        .toLowerCase()
-                        .trim();
-                      let typeKey = rawType.replace(/\s+/g, "_");
-                      if (typeKey === "schedule") typeKey = "schedule";
-                      if (typeKey === "webhook") typeKey = "webhook";
-
-                      const style =
-                        actionStyles[typeKey] || actionStyles.custom;
-                      const Icon = style.icon;
-
-                      return (
-                        <span
-                          key={idx}
-                          className="p-2 rounded-full flex items-center justify-center"
-                          style={{
-                            background: style.gradient,
-                            color: "#fff",
-                          }}
-                        >
-                          <Icon />
-                        </span>
-                      );
-                    })
-                  ) : (
-                    <span className="text-gray-400 text-sm">
-                      No actions yet
-                    </span>
-                  )}
-                </div>
-
-                <h2 className="text-lg font-medium text-gray-800">{wf.name}</h2>
-                <p className="text-gray-500 text-sm">{wf.description}</p>
-              </Link>
-
-              {/* Right Section */}
-              <div className="flex items-center gap-3">
-                {/* Toggle */}
-                <button
-                  onClick={() => toggleWorkflow(wf._id, wf.status)}
-                  className={`w-14 h-7 flex items-center rounded-full p-1 transition ${
-                    wf.status === "active" ? "bg-[#642c8f]" : "bg-gray-300"
-                  }`}
+                {/* Left Section */}
+                <Link
+                  to={`/dashboard/workflows/editor/${wf._id}`}
+                  className="flex-1 flex flex-col gap-2"
                 >
-                  <div
-                    className={`bg-white w-5 h-5 rounded-full shadow-md transform transition ${
-                      wf.status === "active" ? "translate-x-7" : "translate-x-0"
+                  <div className="flex gap-2 mt-1 text-[2rem]">
+                    {/* Webhook Trigger Icon */}
+                    {wf.triggers?.type === "webhook" && (
+                      <span
+                        className="p-2 rounded-full flex items-center justify-center"
+                        style={{
+                          background: actionStyles.webhook.gradient,
+                          color: "#fff",
+                        }}
+                      >
+                        {actionStyles.webhook.icon && (
+                          <actionStyles.webhook.icon />
+                        )}
+                      </span>
+                    )}
+
+                    {/* Action Icons */}
+                    {wf.actions?.length > 0 ? (
+                      wf.actions.map((action, idx) => {
+                        const rawType = (action.type || "")
+                          .toString()
+                          .toLowerCase()
+                          .trim();
+                        let typeKey = rawType.replace(/\s+/g, "_");
+                        if (typeKey === "schedule") typeKey = "schedule";
+                        if (typeKey === "webhook") typeKey = "webhook";
+
+                        const style =
+                          actionStyles[typeKey] || actionStyles.custom;
+                        const Icon = style.icon;
+
+                        return (
+                          <span
+                            key={idx}
+                            className="p-2 rounded-full flex items-center justify-center"
+                            style={{
+                              background: style.gradient,
+                              color: "#fff",
+                            }}
+                          >
+                            <Icon />
+                          </span>
+                        );
+                      })
+                    ) : (
+                      <span className="text-gray-400 text-sm">
+                        No actions yet
+                      </span>
+                    )}
+                  </div>
+
+                  <h2 className="text-lg font-medium text-gray-800">
+                    {wf.name}
+                  </h2>
+                  <p className="text-gray-500 text-sm">{wf.description}</p>
+                </Link>
+
+                {/* Right Section */}
+                <div className="flex items-center gap-3">
+                  {/* Toggle */}
+                  <button
+                    onClick={() => toggleWorkflow(wf._id, wf.status)}
+                    className={`w-14 h-7 flex items-center rounded-full p-1 transition ${
+                      wf.status === "active" ? "bg-[#642c8f]" : "bg-gray-300"
                     }`}
-                  />
-                </button>
+                  >
+                    <div
+                      className={`bg-white w-5 h-5 rounded-full shadow-md transform transition ${
+                        wf.status === "active"
+                          ? "translate-x-7"
+                          : "translate-x-0"
+                      }`}
+                    />
+                  </button>
 
-                {/* Delete */}
-                <button
-                  onClick={() => setDeleteTarget(wf)}
-                  className="w-9 h-9 flex items-center justify-center rounded-full bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition shadow-sm"
-                  title="Delete workflow"
-                >
-                  <FaTrash className="text-sm" />
-                </button>
-              </div>
+                  {/* Delete */}
+                  <button
+                    onClick={() => setDeleteTarget(wf)}
+                    className="w-9 h-9 flex items-center justify-center rounded-full bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition shadow-sm"
+                    title="Delete workflow"
+                  >
+                    <FaTrash className="text-sm" />
+                  </button>
+                </div>
+              </motion.div>
+            ))
+          ) : (
+            <motion.div className="text-gray-500">
+              No recent workflow runs.
             </motion.div>
-          ))}
+          )}
         </div>
 
         {/* Modals (Create + Delete) */}

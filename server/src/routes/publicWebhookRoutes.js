@@ -3,6 +3,6 @@ import { publicWebhookTrigger } from "../controllers/triggerController.js";
 
 const router = express.Router();
 
-router.post("/:workflowId/:secret", publicWebhookTrigger);
+router.all("/:workflowId/:secret", publicWebhookTrigger);
 
 export default router;
