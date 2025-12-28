@@ -1,8 +1,62 @@
 import Workflow from "../models/Workflow.model.js";
 import Webhook from "../models/Webhook.model.js";
-import { executeWorkflow } from "../services/workflowEngine.js";
+import { executeWorkflow } from "../engine/executeWorkflow.js";
 import crypto from "crypto";
 import { log } from "console";
+
+const parseJsonFields = (obj, prefix = "", result = []) => {
+  if (typeof obj !== "object" || obj === null) return result;
+
+  for (const key of Object.keys(obj)) {
+    const value = obj[key];
+    const fieldKey = prefix ? `${prefix}.${key}` : key;
+
+    if (Array.isArray(value)) {
+      result.push({ key: fieldKey, type: "array" });
+    } else if (typeof value === "object" && value !== null) {
+      parseJsonFields(value, fieldKey, result);
+    } else {
+      result.push({ key: fieldKey, type: typeof value });
+    }
+  }
+
+  return result;
+};
+
+export const startWebhookListening = async (req, res) => {
+  const { workflowId } = req.params;
+  const user = req.user;
+
+  const webhook = await Webhook.findOne({ workflowId });
+
+  if (!webhook) {
+    return res.status(404).json({ error: "Webhook not found" });
+  }
+  webhook.isListening = true;
+  webhook.samplePayload = null;
+  webhook.parsedFields = [];
+  webhook.detectedAt = null;
+  webhook.listeningStartedAt = new Date();
+
+  await webhook.save();
+
+  // console.log("listening...");
+  res.json({ message: "Webhook is now listening for payload" });
+};
+
+export const stopWebhookListening = async (req, res) => {
+  const { workflowId } = req.params;
+
+  const webhook = await Webhook.findOne({ workflowId });
+  if (!webhook) {
+    return res.status(404).json({ error: "Webhook not found" });
+  }
+  // console.log("stopped listening...");
+  webhook.isListening = false;
+  await webhook.save();
+
+  res.json({ message: "Webhook listening stopped" });
+};
 
 /**
  * Public webhook trigger
@@ -36,19 +90,26 @@ export const publicWebhookTrigger = async (req, res) => {
       });
     }
 
-    if (workflow.status !== "active") {
-      return res.status(400).json({ error: "Workflow is not active" });
+    /**
+     * 🧠 Capture JSON ONLY when listening
+     */
+    if (
+      webhook.isListening &&
+      payload &&
+      typeof payload === "object" &&
+      !Array.isArray(payload)
+    ) {
+      const parsedFields = parseJsonFields(payload);
+
+      webhook.samplePayload = payload;
+      webhook.parsedFields = parsedFields;
+      webhook.detectedAt = new Date();
+      webhook.isListening = false; // 🔥 AUTO STOP LISTENING
+
+      await webhook.save();
     }
 
-    const context = {
-      ...payload,
-      _workflowId: workflow._id,
-      _triggeredAt: new Date().toISOString(),
-      _source: "public_webhook",
-      _httpMethod: req.method,
-    };
-
-    await executeWorkflow(workflow, context, {
+    await executeWorkflow(workflow, payload, {
       executedBy: workflow.organizationId,
       organizationId: workflow.organizationId,
     });
@@ -72,7 +133,7 @@ export const triggerWebhook = async (req, res) => {
     const { workflowId } = req.params;
     const payload = req.body;
     const user = req.user;
-    console.log(payload);
+    // console.log(payload);
     const workflow = await Workflow.findOne({
       _id: workflowId,
       $or: [{ organizationId: user.organizationId }, { userId: user._id }],
@@ -94,7 +155,7 @@ export const triggerWebhook = async (req, res) => {
     }
 
     const context = {
-      ...payload,
+      webhook: payload,
       _workflowId: workflow._id,
       _triggeredBy: user._id,
       _organizationId: user.organizationId,
@@ -180,6 +241,10 @@ export const getTriggerSecret = async (req, res) => {
       return res.json({
         secret: webhook.secret,
         requestMethod: webhook.requestMethod,
+        parsedFields: webhook.parsedFields || [],
+        samplePayload: webhook.samplePayload || null,
+        isListening: webhook.isListening,
+        detectedAt: webhook.detectedAt,
       });
     }
 

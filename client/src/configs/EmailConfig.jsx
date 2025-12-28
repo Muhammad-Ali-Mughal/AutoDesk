@@ -42,6 +42,16 @@ export default function EmailConfig({ node, workflowId, onChange }) {
     };
   }, [workflowId, node?.id]);
 
+  const handleDrop = (setter, value) => (e) => {
+    e.preventDefault();
+    const variable = e.dataTransfer.getData("application/variable");
+    if (!variable) return;
+
+    setter(value + variable);
+  };
+
+  const allowDrop = (e) => e.preventDefault();
+
   useEffect(() => {
     onChange?.({
       ...node,
@@ -66,6 +76,8 @@ export default function EmailConfig({ node, workflowId, onChange }) {
           type="email"
           value={to}
           onChange={(e) => setTo(e.target.value)}
+          onDrop={handleDrop(setTo, to)}
+          onDragOver={allowDrop}
           placeholder="example@mail.com"
           className="border rounded p-2"
         />
@@ -77,6 +89,8 @@ export default function EmailConfig({ node, workflowId, onChange }) {
           type="text"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
+          onDrop={handleDrop(setSubject, subject)}
+          onDragOver={allowDrop}
           placeholder="Subject line"
           className="border rounded p-2"
         />
@@ -87,6 +101,8 @@ export default function EmailConfig({ node, workflowId, onChange }) {
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
+          onDrop={handleDrop(setBody, body)}
+          onDragOver={allowDrop}
           placeholder="Type your email message here..."
           rows={5}
           className="border rounded p-2"

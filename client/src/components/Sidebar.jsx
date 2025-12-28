@@ -14,6 +14,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../store/slices/authSlice.js";
 import { useEffect } from "react";
+import { useMemo } from "react";
 
 export default function Sidebar() {
   const isDarkMode = useSelector((state) => state.darkMode.isDarkMode);
@@ -22,7 +23,7 @@ export default function Sidebar() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const menuItems = [
+  const baseMenuItems = [
     { name: "Dashboard", path: "/dashboard", icon: <FaTachometerAlt /> },
     {
       name: "Make with AI",
@@ -45,16 +46,20 @@ export default function Sidebar() {
     { name: "Settings", path: "/dashboard/settings", icon: <FaCog /> },
   ];
 
-  // Insert superadmin link at the top if user is superadmin
-  useEffect(() => {
-    if (user.role.name == "Superadmin") {
-      menuItems.unshift({
-        name: "Superadmin",
-        path: "/superadmin",
-        icon: <FaUserShield />,
-      });
+  const menuItems = useMemo(() => {
+    if (user?.role?.name === "Superadmin") {
+      return [
+        {
+          name: "Superadmin",
+          path: "/superadmin",
+          icon: <FaUserShield />,
+        },
+        ...baseMenuItems,
+      ];
     }
-  }, []);
+
+    return baseMenuItems;
+  }, [user]);
 
   const handleLogout = async () => {
     await dispatch(logout());

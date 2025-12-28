@@ -2,9 +2,18 @@ import mongoose from "mongoose";
 
 const executionStepSchema = new mongoose.Schema(
   {
-    nodeId: { type: String, required: true },
-    stepName: { type: String, required: true },
-    action: { type: String, required: true },
+    nodeId: {
+      type: String,
+      // required: true
+    },
+    stepName: {
+      type: String,
+      // required: true
+    },
+    action: {
+      type: String,
+      // required: true
+    },
     status: {
       type: String,
       enum: ["pending", "running", "success", "failed", "skipped"],

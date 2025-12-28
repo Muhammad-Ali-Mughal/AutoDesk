@@ -1,4 +1,4 @@
-import EmailAction from "../models/Email.model.js";
+import EmailAction from "../../models/Email.model.js";
 
 export async function emailResolver(action, node, workflowId) {
   const emailAction = await EmailAction.findOne({

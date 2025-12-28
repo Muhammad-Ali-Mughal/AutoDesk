@@ -1,7 +1,7 @@
 import cron from "node-cron";
 import Schedule from "../models/Schedule.model.js";
 import Workflow from "../models/Workflow.model.js";
-import { executeWorkflow } from "./workflowEngine.js";
+import { executeWorkflow } from "../engine/executeWorkflow.js";
 
 const jobs = new Map();
 

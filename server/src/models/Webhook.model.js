@@ -5,49 +5,40 @@ const webhookSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: [true, "User is required"],
     },
 
     organizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Organization",
-      required: [true, "Organization is required"],
     },
 
     workflowId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Workflow",
-      required: [true, "Workflow is required"],
+      required: true,
     },
 
     secret: {
       type: String,
-      required: [true, "Webhook secret is required"],
+      required: true,
       unique: true,
       index: true,
     },
 
     url: {
       type: String,
-      required: [true, "Webhook URL is required"],
+      required: true,
       trim: true,
-      match: [/^https?:\/\/.+/, "Please enter a valid URL"],
     },
 
-    /**
-     * NEW: Allowed HTTP request method for this webhook
-     * Only this method should trigger the workflow
-     */
     requestMethod: {
       type: String,
-      required: [true, "Request method is required"],
       enum: ["GET", "POST", "PUT", "PATCH", "DELETE"],
       default: "POST",
     },
 
     event: {
       type: String,
-      required: [true, "Event is required"],
       enum: [
         "workflow.started",
         "workflow.completed",
@@ -56,6 +47,7 @@ const webhookSchema = new mongoose.Schema(
         "payment.failed",
         "custom",
       ],
+      required: true,
     },
 
     status: {
@@ -63,10 +55,38 @@ const webhookSchema = new mongoose.Schema(
       enum: ["active", "inactive", "failed"],
       default: "active",
     },
+
+    /**
+     * 🧠 Webhook payload detection (Make/Zapier style)
+     */
+    isListening: {
+      type: Boolean,
+      default: false,
+    },
+
+    listeningStartedAt: {
+      type: Date,
+    },
+
+    samplePayload: {
+      type: Object,
+      default: null,
+    },
+
+    parsedFields: [
+      {
+        key: String,
+        type: {
+          type: String,
+        },
+      },
+    ],
+
+    detectedAt: {
+      type: Date,
+    },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 export default mongoose.model("Webhook", webhookSchema);

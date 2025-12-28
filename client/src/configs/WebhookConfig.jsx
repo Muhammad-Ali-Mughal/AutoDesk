@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import toast from "react-hot-toast";
 import api from "../utils/api";
 
@@ -8,6 +8,11 @@ function WebhookConfig({ node, workflowId }) {
   const [secret, setSecret] = useState("");
   const [requestMethod, setRequestMethod] = useState("POST");
   const [loading, setLoading] = useState(true);
+  const [isListening, setIsListening] = useState(false);
+  const [parsedFields, setParsedFields] = useState([]);
+  const [samplePayload, setSamplePayload] = useState(null);
+
+  const pollingRef = useRef(null);
 
   // Generate a new secret (local only)
   const generateSecret = () =>
@@ -20,12 +25,19 @@ function WebhookConfig({ node, workflowId }) {
       setLoading(true);
 
       const res = await api.get(`/triggers/${workflowId}/trigger-secret`);
-      const { secret: workflowSecret, requestMethod: dbMethod } =
-        res.data || {};
+      const {
+        secret: workflowSecret,
+        requestMethod: dbMethod,
+        parsedFields: fields,
+        samplePayload: payload,
+      } = res.data || {};
 
       if (workflowSecret) {
         setSecret(workflowSecret);
         setRequestMethod(dbMethod || "POST");
+        setParsedFields(fields || []);
+        setSamplePayload(payload || null);
+        setIsListening(res.data?.isListening || false);
 
         node.data = {
           ...node.data,
@@ -51,9 +63,7 @@ function WebhookConfig({ node, workflowId }) {
   };
 
   useEffect(() => {
-    if (workflowId && node) {
-      initializeWebhook();
-    }
+    if (workflowId && node) initializeWebhook();
   }, [workflowId, node]);
 
   const webhookUrl = secret
@@ -73,10 +83,7 @@ function WebhookConfig({ node, workflowId }) {
       await api.request({
         url: `/triggers/public/${workflowId}/${secret}`,
         method: requestMethod,
-        data: {
-          test: true,
-          source: "UI Test",
-        },
+        data: { test: true, source: "UI Test" },
       });
 
       toast.success("Webhook Test Success!");
@@ -92,10 +99,7 @@ function WebhookConfig({ node, workflowId }) {
     const newSecret = generateSecret();
     setSecret(newSecret);
 
-    node.data = {
-      ...node.data,
-      secret: newSecret,
-    };
+    node.data = { ...node.data, secret: newSecret };
 
     toast.success("New webhook URL generated (not saved)!");
   };
@@ -104,10 +108,56 @@ function WebhookConfig({ node, workflowId }) {
     const value = e.target.value;
     setRequestMethod(value);
 
-    node.data = {
-      ...node.data,
-      requestMethod: value,
-    };
+    node.data = { ...node.data, requestMethod: value };
+  };
+
+  // Start listening for first payload
+  const startListening = async () => {
+    try {
+      setIsListening(true);
+      await api.post(`/triggers/${workflowId}/webhook/listen`);
+
+      toast.success("Listening for first payload");
+
+      // Start polling backend for payload/variables
+      pollingRef.current = setInterval(fetchWebhookData, 3000);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to start listening");
+      setIsListening(false);
+    }
+  };
+
+  // Stop listening manually
+  const stopListening = async () => {
+    try {
+      await api.post(`/triggers/${workflowId}/webhook/stop-listen`);
+      setIsListening(false);
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to stop listening");
+    }
+  };
+
+  // Poll backend for detected variables
+  const fetchWebhookData = async () => {
+    try {
+      const res = await api.get(`/triggers/${workflowId}/trigger-secret`);
+      const { parsedFields: fields, samplePayload: payload } = res.data;
+
+      if (fields) setParsedFields(fields);
+      if (payload) setSamplePayload(payload);
+
+      // Stop listening automatically if payload detected
+      if (payload) {
+        setIsListening(false);
+        clearInterval(pollingRef.current);
+        toast.success("Payload detected and variables parsed!");
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   if (loading) return <div>Loading webhook...</div>;
@@ -121,12 +171,10 @@ function WebhookConfig({ node, workflowId }) {
         </label>
 
         <div className="flex items-stretch rounded-lg overflow-hidden shadow-sm border border-teal-600">
-          {/* Request Method */}
           <select
             value={requestMethod}
             onChange={onMethodChange}
-            className="px-4 py-2 bg-teal-600 text-white font-semibold text-sm 
-                     focus:outline-none cursor-pointer border-r border-teal-700"
+            className="px-4 py-2 bg-teal-600 text-white font-semibold text-sm focus:outline-none cursor-pointer border-r border-teal-700"
           >
             {REQUEST_METHODS.map((method) => (
               <option key={method} value={method} className="text-black">
@@ -135,20 +183,16 @@ function WebhookConfig({ node, workflowId }) {
             ))}
           </select>
 
-          {/* Webhook URL */}
           <input
             type="text"
             value={webhookUrl}
             readOnly
-            className="flex-1 px-4 py-2 bg-grey-200 text-gray-500 text-sm 
-                     placeholder-white/70 focus:outline-none"
+            className="flex-1 px-4 py-2 bg-gray-200 text-gray-500 text-sm placeholder-white/70 focus:outline-none"
           />
 
-          {/* Copy Button */}
           <button
             onClick={copyToClipboard}
-            className="px-4 bg-teal-700 hover:bg-teal-800 
-                     text-white text-sm font-medium transition"
+            className="px-4 bg-teal-700 hover:bg-teal-800 text-white text-sm font-medium transition"
           >
             Copy
           </button>
@@ -160,20 +204,51 @@ function WebhookConfig({ node, workflowId }) {
         </p>
       </div>
 
+      {/* Listening / Variables */}
+      <div className="flex flex-col gap-2">
+        {!samplePayload && !isListening && (
+          <button
+            onClick={startListening}
+            className="px-5 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700"
+          >
+            Start Listening for Payload
+          </button>
+        )}
+
+        {isListening && (
+          <span className="px-3 py-1 rounded-full bg-yellow-200 text-yellow-800 font-semibold">
+            Listening...
+          </span>
+        )}
+
+        {parsedFields.length > 0 && (
+          <div className="mt-4 p-3 border rounded shadow-sm bg-gray-50">
+            <h4 className="font-semibold text-gray-700 mb-2">
+              Detected Variables:
+            </h4>
+            <ul className="text-sm text-gray-600">
+              {parsedFields.map((f) => (
+                <li key={f.key}>
+                  <span className="font-mono">{f.key}</span> ({f.type})
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
       {/* Actions */}
       <div className="flex gap-3 pt-2">
         <button
           onClick={testWebhook}
-          className="px-5 py-2 rounded-lg bg-teal-600 text-white 
-                   font-semibold hover:bg-teal-700 transition"
+          className="px-5 py-2 rounded-lg bg-teal-600 text-white font-semibold hover:bg-teal-700 transition"
         >
           Send Test Webhook
         </button>
 
         <button
           onClick={regenerateWebhook}
-          className="px-5 py-2 rounded-lg bg-red-600 text-white 
-                   font-semibold hover:bg-red-700 transition"
+          className="px-5 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition"
         >
           Regenerate URL
         </button>

@@ -13,6 +13,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import CustomNode from "../../components/shared/CustomNode";
 import ModulesPanel from "../../components/shared/ModulesPanel";
+import DataPanel from "../../components/shared/DataPanel";
 import ModulePopup from "../../components/shared/ModulePopup";
 import ContextMenu from "../../components/shared/ContextMenu";
 import { useParams } from "react-router-dom";
@@ -71,6 +72,13 @@ function WorkflowEditorInner() {
   const { handleSaveEmail } = useEmailSaveHandler(workflowId);
   const { handleSaveGoogleSheets } = useGoogleSheetsSaveHandler(workflowId);
 
+  const [workflowContext, setWorkflowContext] = useState({
+    webhook: {
+      payload: null,
+      fields: [],
+    },
+  });
+
   // ✅ Load workflow when editor opens
   useEffect(() => {
     const fetchWorkflow = async () => {
@@ -102,6 +110,21 @@ function WorkflowEditorInner() {
 
         setNodes(decoratedNodes);
         setEdges(wf.edges || []);
+
+        try {
+          const webhookRes = await api.get(
+            `/triggers/${workflowId}/trigger-secret`
+          );
+
+          setWorkflowContext({
+            webhook: {
+              payload: webhookRes.data.samplePayload || null,
+              fields: webhookRes.data.parsedFields || [],
+            },
+          });
+        } catch (e) {
+          console.warn("No webhook payload yet");
+        }
       } catch (err) {
         console.error(
           "Error loading workflow:",
@@ -322,6 +345,8 @@ function WorkflowEditorInner() {
       </ReactFlow>
 
       <ModulesPanel />
+
+      <DataPanel webhook={workflowContext.webhook} />
 
       <ModulePopup
         isOpen={popupOpen}
