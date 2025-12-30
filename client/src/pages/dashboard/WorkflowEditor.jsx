@@ -368,7 +368,18 @@ function WorkflowEditorInner() {
         {activeNode?.actionType === "schedule" ? (
           <SchedulerConfig node={activeNode} workflowId={workflowId} />
         ) : activeNode?.actionType === "webhook" ? (
-          <WebhookConfig node={activeNode} workflowId={workflowId} />
+          <WebhookConfig
+            node={activeNode}
+            workflowId={workflowId}
+            onContextUpdate={(ctx) => {
+              setWorkflowContext({
+                webhook: {
+                  payload: ctx.samplePayload,
+                  fields: ctx.parsedFields,
+                },
+              });
+            }}
+          />
         ) : activeNode?.actionType === "email" ? (
           <EmailConfig
             node={activeNode}

@@ -39,7 +39,7 @@ export async function executeNode(nodeId, workflow, context, log) {
   const actionType = resolveActionType({ node, action });
 
   console.log("ACTION TYPE:", actionType);
-  console.log("AVAILABLE HANDLERS:", Object.keys(handlers));
+  // console.log("AVAILABLE HANDLERS:", Object.keys(handlers));
 
   const stepLog = {
     nodeId: node.id,
