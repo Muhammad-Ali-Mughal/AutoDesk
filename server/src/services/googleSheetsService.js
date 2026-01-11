@@ -34,3 +34,22 @@ export async function readSheetForUser(userId, spreadsheetId, range) {
   const res = await sheets.spreadsheets.values.get({ spreadsheetId, range });
   return res.data.values;
 }
+
+export async function listSheetTabsForUser(userId, spreadsheetId) {
+  const auth = await getAuthorizedClient(userId);
+  if (!auth) {
+    return { error: "not_connected" };
+  }
+
+  const sheets = google.sheets({ version: "v4", auth });
+  const res = await sheets.spreadsheets.get({
+    spreadsheetId,
+    fields: "sheets(properties(title))",
+  });
+
+  const tabs =
+    res.data.sheets?.map((sheet) => sheet.properties?.title).filter(Boolean) ||
+    [];
+
+  return { tabs };
+}

@@ -1,7 +1,9 @@
 import { emailResolver } from "./emailResolver.js";
+import { googleSheetsResolver } from "./googleSheetsResolver.js";
 
 const resolvers = {
   email: emailResolver,
+  google_sheets: googleSheetsResolver,
   // slack: slackResolver,
   // sms: smsResolver,
   // etc...

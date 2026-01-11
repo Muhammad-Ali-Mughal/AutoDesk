@@ -1,15 +1,25 @@
 import { google } from "googleapis";
 import GoogleAccount from "../models/GoogleAccount.model.js";
 
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI
-);
+const getOAuthClient = () => {
+  const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI } =
+    process.env;
+
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REDIRECT_URI) {
+    throw new Error("Google OAuth env vars are not configured");
+  }
+
+  return new google.auth.OAuth2(
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    GOOGLE_REDIRECT_URI
+  );
+};
 
 // Step 1: Redirect user to Google login
 export const googleAuth = async (req, res) => {
   try {
+    const oauth2Client = getOAuthClient();
     const scopes = [
       "https://www.googleapis.com/auth/drive",
       "https://www.googleapis.com/auth/spreadsheets",
@@ -17,13 +27,14 @@ export const googleAuth = async (req, res) => {
       "profile",
     ];
 
-    // 🔹 Detect if user has already connected Google before
+    // Force an interactive screen to avoid instant close on stale sessions.
     const existing = await GoogleAccount.findOne({ userId: req.user._id });
-    const prompt = existing ? "none" : "consent";
+    const prompt = existing?.refreshToken ? "select_account" : "consent";
 
     const url = oauth2Client.generateAuthUrl({
       access_type: "offline",
       prompt,
+      include_granted_scopes: true,
       scope: scopes,
       state: JSON.stringify({ userId: req.user._id }),
     });
@@ -39,7 +50,28 @@ export const googleAuth = async (req, res) => {
 export const googleCallback = async (req, res) => {
   try {
     const { code, state } = req.query;
+    if (!code || !state) {
+      return res.status(400).send(`
+        <html>
+          <body style="font-family: sans-serif; padding: 24px;">
+            <h3>Google authorization failed</h3>
+            <p>Missing authorization code. Please try again.</p>
+            <button onclick="window.close()">Close</button>
+            <script>
+              if (window.opener) {
+                window.opener.postMessage(
+                  { type: "GOOGLE_AUTH_ERROR", message: "Missing authorization code" },
+                  "*"
+                );
+              }
+            </script>
+          </body>
+        </html>
+      `);
+    }
+
     const { userId } = JSON.parse(state);
+    const oauth2Client = getOAuthClient();
 
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
@@ -74,7 +106,23 @@ export const googleCallback = async (req, res) => {
     `);
   } catch (err) {
     console.error("Google OAuth callback error:", err);
-    res.redirect(`${process.env.CLIENT_URL}/google-success?connected=false`);
+    res.status(500).send(`
+      <html>
+        <body style="font-family: sans-serif; padding: 24px;">
+          <h3>Google authorization failed</h3>
+          <p>Please try connecting again.</p>
+          <button onclick="window.close()">Close</button>
+          <script>
+            if (window.opener) {
+              window.opener.postMessage(
+                { type: "GOOGLE_AUTH_ERROR", message: "OAuth callback error" },
+                "*"
+              );
+            }
+          </script>
+        </body>
+      </html>
+    `);
   }
 };
 

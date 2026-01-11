@@ -197,18 +197,19 @@ export const updateWorkflowWebhook = async (req, res) => {
       return res.status(404).json({ message: "Workflow not found" });
     }
 
-    const secret = clientSecret || crypto.randomUUID();
-
     let webhook = await Webhook.findOne({ workflowId });
 
     if (webhook) {
-      webhook.secret = secret;
+      if (clientSecret) {
+        webhook.secret = clientSecret;
+      }
       webhook.url = url || webhook.url;
       webhook.event = event || webhook.event;
       webhook.requestMethod = requestMethod || webhook.requestMethod;
       webhook.status = "active";
       await webhook.save();
     } else {
+      const secret = clientSecret || crypto.randomUUID();
       webhook = await Webhook.create({
         workflowId,
         userId: user._id,

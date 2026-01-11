@@ -1,6 +1,7 @@
 import {
   appendRowForUser,
   readSheetForUser,
+  listSheetTabsForUser,
 } from "../services/googleSheetsService.js";
 import {
   uploadFileForUser,
@@ -133,6 +134,29 @@ export const listFiles = async (req, res) => {
     }
     // console.log("Sending files to frontend:", files?.length);
     res.json({ success: true, files: files || [] });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+export const listSheetTabs = async (req, res) => {
+  try {
+    const userId = req.user?._id;
+    if (!userId) throw new Error("Unauthorized");
+
+    const { spreadsheetId } = req.query;
+    if (!spreadsheetId) {
+      return res.status(400).json({ message: "spreadsheetId is required" });
+    }
+
+    const { tabs, error } = await listSheetTabsForUser(userId, spreadsheetId);
+    if (error === "not_connected") {
+      return res
+        .status(401)
+        .json({ message: "Google account disconnected. Please reconnect." });
+    }
+
+    res.json({ success: true, tabs });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }

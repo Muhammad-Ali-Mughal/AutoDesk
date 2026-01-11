@@ -371,6 +371,7 @@ function WorkflowEditorInner() {
           <WebhookConfig
             node={activeNode}
             workflowId={workflowId}
+            onSave={() => setPopupOpen(false)}
             onContextUpdate={(ctx) => {
               setWorkflowContext({
                 webhook: {
@@ -384,6 +385,7 @@ function WorkflowEditorInner() {
           <EmailConfig
             node={activeNode}
             workflowId={workflowId}
+            onSave={() => setPopupOpen(false)}
             onChange={(updatedNode) => {
               setActiveNode(updatedNode);
               setNodes((nds) =>

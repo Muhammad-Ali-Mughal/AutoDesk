@@ -22,12 +22,20 @@ function WebhookConfig({ node, workflowId, onContextUpdate }) {
     crypto?.randomUUID?.() || Math.random().toString(36).substring(2, 15);
 
   const ensureWebhookExists = async (override = {}) => {
+    let effectiveSecret = override.secret || secret;
+
+    if (!effectiveSecret) {
+      effectiveSecret = generateSecret();
+      setSecret(effectiveSecret);
+      node.data = { ...node.data, secret: effectiveSecret };
+    }
+
     await api.put(`/triggers/${workflowId}/update-trigger`, {
       url: `${
         import.meta.env.VITE_SERVER_URI
-      }/api/triggers/public/${workflowId}/${override.secret || secret}`,
+      }/api/triggers/public/${workflowId}/${effectiveSecret}`,
       event: "workflow.started",
-      secret: override.secret || secret,
+      secret: effectiveSecret,
       requestMethod: override.requestMethod || requestMethod,
       status: "active",
     });
@@ -38,6 +46,11 @@ function WebhookConfig({ node, workflowId, onContextUpdate }) {
   const initializeWebhook = async () => {
     try {
       setLoading(true);
+      setSecret("");
+      setRequestMethod("POST");
+      setParsedFields([]);
+      setSamplePayload(null);
+      setIsListening(false);
 
       const res = await api.get(`/triggers/${workflowId}/trigger-secret`);
       const {

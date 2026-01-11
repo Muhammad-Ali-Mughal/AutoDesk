@@ -1,4 +1,11 @@
+import mongoose from "mongoose";
 import Workflow from "../models/Workflow.model.js";
+import Webhook from "../models/Webhook.model.js";
+import Schedule from "../models/Schedule.model.js";
+import GoogleSheetsModel from "../models/GoogleSheets.model.js";
+import EmailModel from "../models/Email.model.js";
+import WorkflowLogModel from "../models/WorkflowLog.model.js";
+import ExecutionModel from "../models/Execution.model.js";
 
 // ✅ Create workflow
 export const createWorkflow = async (req, res) => {
@@ -64,18 +71,19 @@ export const getWorkflowById = async (req, res) => {
 // ✅ Update workflow
 export const updateWorkflow = async (req, res) => {
   try {
-    const { triggers, actions, status, name, description, nodes, edges } = req.body;
+    const { triggers, actions, status, name, description, nodes, edges } =
+      req.body;
 
     const workflow = await Workflow.findByIdAndUpdate(
       req.params.id,
-      { 
-        triggers, 
-        actions, 
-        nodes,    
-        edges,    
-        status,                                         
-        name, 
-        description 
+      {
+        triggers,
+        actions,
+        nodes,
+        edges,
+        status,
+        name,
+        description,
       },
       { new: true, runValidators: true }
     );
@@ -94,17 +102,48 @@ export const updateWorkflow = async (req, res) => {
 
 // ✅ Delete workflow
 export const deleteWorkflow = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    const workflow = await Workflow.findByIdAndDelete(req.params.id);
+    const workflowId = req.params.id;
+
+    const workflow = await Workflow.findById(workflowId).session(session);
 
     if (!workflow) {
+      await session.abortTransaction();
       return res
         .status(404)
         .json({ success: false, message: "Workflow not found" });
     }
 
-    res.status(200).json({ success: true, message: "Workflow deleted" });
+    // 🔥 CASCADE DELETE ALL MODULE DATA
+    await Promise.all([
+      Webhook.deleteMany({ workflowId }).session(session),
+      EmailModel.deleteMany({ workflowId }).session(session),
+      Schedule.deleteMany({ workflowId }).session(session),
+      GoogleSheetsModel.deleteMany({ workflowId }).session(session),
+      WorkflowLogModel.deleteMany({ workflowId }).session(session),
+      ExecutionModel.deleteMany({ workflowId }).session(session),
+    ]);
+
+    // 🔥 DELETE WORKFLOW LAST
+    await Workflow.deleteOne({ _id: workflowId }).session(session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(200).json({
+      success: true,
+      message: "Workflow and all related data deleted",
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    await session.abortTransaction();
+    session.endSession();
+
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };

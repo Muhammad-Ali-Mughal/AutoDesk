@@ -25,6 +25,40 @@ const scheduleSchema = new mongoose.Schema(
         "Invalid cron expression",
       ],
     },
+    frequency: {
+      type: String,
+      enum: ["hourly", "daily", "weekly", "monthly", "custom", "once"],
+      default: "daily",
+    },
+    time: {
+      type: String,
+      default: "09:00",
+    },
+    minute: {
+      type: Number,
+      min: 0,
+      max: 59,
+      default: 0,
+    },
+    dayOfWeek: {
+      type: Number,
+      min: 0,
+      max: 6,
+      default: 1,
+    },
+    dayOfMonth: {
+      type: Number,
+      min: 1,
+      max: 31,
+      default: 1,
+    },
+    runOnce: {
+      type: Boolean,
+      default: false,
+    },
+    runAt: {
+      type: Date,
+    },
     timezone: {
       type: String,
       default: "UTC",

@@ -11,6 +11,14 @@ const jobs = new Map();
 export const registerJob = (schedule) => {
   try {
     if (!schedule || schedule.status !== "active") return;
+    if (schedule.runOnce && schedule.runAt) {
+      const runAt = new Date(schedule.runAt);
+      if (runAt < new Date()) {
+        schedule.status = "inactive";
+        schedule.save().catch(() => {});
+        return;
+      }
+    }
 
     // Stop old job if it already exists (avoid duplicates)
     if (jobs.has(schedule._id.toString())) {
@@ -32,15 +40,26 @@ export const registerJob = (schedule) => {
           const workflow = await Workflow.findById(schedule.workflowId);
           if (!workflow || workflow.status !== "active") return;
 
-          const context = {
-            _workflowId: workflow._id,
-            _triggeredAt: new Date().toISOString(),
+          const payload = {
+            schedule: {
+              workflowId: workflow._id.toString(),
+              triggeredAt: new Date().toISOString(),
+            },
             _source: "schedule",
           };
 
-          await executeWorkflow(workflow, context);
+          await executeWorkflow(workflow, payload, {
+            executedBy: workflow.userId,
+            organizationId: workflow.organizationId,
+          });
 
           schedule.lastRun = new Date();
+          if (schedule.runOnce) {
+            schedule.status = "inactive";
+            await schedule.save();
+            unregisterJob(schedule._id.toString());
+            return;
+          }
           await schedule.save();
 
           console.log(
@@ -56,9 +75,9 @@ export const registerJob = (schedule) => {
     );
 
     jobs.set(schedule._id.toString(), job);
-    console.log(
-      `🕒 Registered schedule ${schedule._id} for workflow ${schedule.workflowId}`
-    );
+    // console.log(
+    //   `🕒 Registered schedule ${schedule._id} for workflow ${schedule.workflowId}`
+    // );
   } catch (err) {
     console.error("❌ Error registering job:", err);
   }

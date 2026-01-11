@@ -8,7 +8,17 @@ import { registerJob, unregisterJob } from "../services/scheduler.js";
 export const createSchedule = async (req, res) => {
   try {
     const { workflowId } = req.params;
-    const { cron, timezone } = req.body;
+    const {
+      cron,
+      timezone,
+      frequency,
+      time,
+      dayOfWeek,
+      dayOfMonth,
+      minute,
+      runOnce,
+      runAt,
+    } = req.body;
     const user = req.user;
 
     const workflow = await Workflow.findOne({
@@ -17,15 +27,46 @@ export const createSchedule = async (req, res) => {
     });
     if (!workflow) return res.status(404).json({ message: "Workflow not found" });
 
-    const schedule = await Schedule.create({
+    let schedule = await Schedule.findOne({
+      workflowId,
+      $or: [{ organizationId: user.organizationId }, { userId: user._id }],
+    });
+
+    if (schedule) {
+      schedule.cron = cron || schedule.cron;
+      schedule.timezone = timezone || schedule.timezone;
+      schedule.frequency = frequency || schedule.frequency;
+      schedule.time = time || schedule.time;
+      if (minute !== undefined) schedule.minute = minute;
+      if (dayOfWeek !== undefined) schedule.dayOfWeek = dayOfWeek;
+      if (dayOfMonth !== undefined) schedule.dayOfMonth = dayOfMonth;
+      if (runOnce !== undefined) schedule.runOnce = runOnce;
+      if (runAt !== undefined)
+        schedule.runAt = runAt ? new Date(runAt) : null;
+      schedule.status = "active";
+      await schedule.save();
+
+      unregisterJob(schedule._id.toString());
+      registerJob(schedule);
+
+      return res.json({ message: "Schedule updated", schedule });
+    }
+
+    schedule = await Schedule.create({
       userId: user._id,
       organizationId: user.organizationId,
       workflowId,
       cron,
       timezone: timezone || "UTC",
+      frequency,
+      time,
+      minute,
+      dayOfWeek,
+      dayOfMonth,
+      runOnce,
+      runAt: runAt ? new Date(runAt) : null,
     });
 
-    // Register with scheduler service
     registerJob(schedule);
 
     res.status(201).json({ message: "Schedule created", schedule });
@@ -41,7 +82,18 @@ export const createSchedule = async (req, res) => {
 export const updateSchedule = async (req, res) => {
   try {
     const { workflowId, scheduleId } = req.params;
-    const { cron, timezone, status } = req.body;
+    const {
+      cron,
+      timezone,
+      status,
+      frequency,
+      time,
+      dayOfWeek,
+      dayOfMonth,
+      minute,
+      runOnce,
+      runAt,
+    } = req.body;
     const user = req.user;
 
     let schedule = await Schedule.findOne({
@@ -53,6 +105,13 @@ export const updateSchedule = async (req, res) => {
 
     schedule.cron = cron || schedule.cron;
     schedule.timezone = timezone || schedule.timezone;
+    schedule.frequency = frequency || schedule.frequency;
+    schedule.time = time || schedule.time;
+    if (minute !== undefined) schedule.minute = minute;
+    if (dayOfWeek !== undefined) schedule.dayOfWeek = dayOfWeek;
+    if (dayOfMonth !== undefined) schedule.dayOfMonth = dayOfMonth;
+    if (runOnce !== undefined) schedule.runOnce = runOnce;
+    if (runAt !== undefined) schedule.runAt = runAt ? new Date(runAt) : null;
     if (status) schedule.status = status;
 
     await schedule.save();

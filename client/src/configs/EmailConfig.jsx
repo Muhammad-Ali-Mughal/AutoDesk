@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import api from "../utils/api";
 import toast from "react-hot-toast";
+import { useVariableDrop } from "../hooks/useVariableDrop";
 
 export default function EmailConfig({ node, workflowId, onChange }) {
   const [to, setTo] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(false);
+  const { allowDrop, onVariableDrop } = useVariableDrop();
 
   useEffect(() => {
     let mounted = true;
@@ -42,16 +44,6 @@ export default function EmailConfig({ node, workflowId, onChange }) {
     };
   }, [workflowId, node?.id]);
 
-  const handleDrop = (setter, value) => (e) => {
-    e.preventDefault();
-    const variable = e.dataTransfer.getData("application/variable");
-    if (!variable) return;
-
-    setter(value + variable);
-  };
-
-  const allowDrop = (e) => e.preventDefault();
-
   useEffect(() => {
     onChange?.({
       ...node,
@@ -76,7 +68,7 @@ export default function EmailConfig({ node, workflowId, onChange }) {
           type="email"
           value={to}
           onChange={(e) => setTo(e.target.value)}
-          onDrop={handleDrop(setTo, to)}
+          onDrop={onVariableDrop(setTo, to)}
           onDragOver={allowDrop}
           placeholder="example@mail.com"
           className="border rounded p-2"
@@ -89,7 +81,7 @@ export default function EmailConfig({ node, workflowId, onChange }) {
           type="text"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
-          onDrop={handleDrop(setSubject, subject)}
+          onDrop={onVariableDrop(setSubject, subject)}
           onDragOver={allowDrop}
           placeholder="Subject line"
           className="border rounded p-2"
@@ -101,7 +93,7 @@ export default function EmailConfig({ node, workflowId, onChange }) {
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          onDrop={handleDrop(setBody, body)}
+          onDrop={onVariableDrop(setBody, body)}
           onDragOver={allowDrop}
           placeholder="Type your email message here..."
           rows={5}

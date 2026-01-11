@@ -14,34 +14,76 @@ export function useSchedulerSaveHandler(workflowId) {
         const actionType = node.data?.actionType || node.actionType;
         if (actionType !== "schedule") return;
 
-        const { frequency, time } = node.data || {};
-        if (!frequency || !time) {
+        const {
+          frequency,
+          time,
+          timezone,
+          dayOfWeek,
+          dayOfMonth,
+          cron,
+          minute,
+          runOnce,
+          runAt,
+        } = node.data || {};
+        if (!frequency && !runOnce) {
           toast.error("Scheduler configuration is incomplete.");
           return;
         }
 
-        // Extract hours/minutes
-        const [hour, minute] = time.split(":");
-
         // Build cron based on frequency
-        let cron;
-        if (frequency === "daily") {
-          cron = `${minute} ${hour} * * *`; // every day at HH:MM
-        } else if (frequency === "weekly") {
-          cron = `${minute} ${hour} * * 0`; // every Sunday at HH:MM
+        let derivedCron = cron;
+        if (runOnce) {
+          if (!runAt || !time) {
+            toast.error("Please select a date and time.");
+            return;
+          }
+          const date = new Date(runAt);
+          const [hour, min] = time.split(":");
+          derivedCron = `${min} ${hour} ${date.getDate()} ${
+            date.getMonth() + 1
+          } *`;
+        } else if (frequency === "custom") {
+          if (!derivedCron) {
+            toast.error("Please provide a cron expression.");
+            return;
+          }
         } else if (frequency === "hourly") {
-          cron = `0 * * * *`; // every hour on the hour
+          const minuteValue =
+            typeof minute === "number" ? minute : Number(minute) || 0;
+          derivedCron = `${minuteValue} * * * *`;
         } else {
-          toast.error("Invalid frequency selected.");
-          return;
+          if (!time) {
+            toast.error("Please select a time.");
+            return;
+          }
+
+          const [hour, minute] = time.split(":");
+          if (frequency === "daily") {
+            derivedCron = `${minute} ${hour} * * *`;
+          } else if (frequency === "weekly") {
+            const day = dayOfWeek ?? 1;
+            derivedCron = `${minute} ${hour} * * ${day}`;
+          } else if (frequency === "monthly") {
+            const day = dayOfMonth ?? 1;
+            derivedCron = `${minute} ${hour} ${day} * *`;
+          } else {
+            toast.error("Invalid frequency selected.");
+            return;
+          }
         }
 
         // Build payload
         const payload = {
           workflowId,
-          frequency,
+          frequency: runOnce ? "once" : frequency,
           time,
-          cron,
+          cron: derivedCron,
+          dayOfWeek,
+          dayOfMonth,
+          minute,
+          timezone,
+          runOnce: !!runOnce,
+          runAt: runAt || null,
           status: "active",
         };
 
