@@ -35,7 +35,10 @@ function DataPanel({ webhook }) {
   };
 
   const onDragStart = (e, path) => {
-    e.dataTransfer.setData("application/variable", `{{webhook.${path}}}`);
+    const variableData = `{{context.payload.${path}}}`;
+    e.dataTransfer.effectAllowed = "copy";
+    e.dataTransfer.setData("application/variable", variableData);
+    e.dataTransfer.setData("text/plain", variableData);
   };
 
   return (

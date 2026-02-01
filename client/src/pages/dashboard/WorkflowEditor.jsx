@@ -12,6 +12,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import CustomNode from "../../components/shared/CustomNode";
+import ConditionNode from "../../components/shared/ConditionNode";
 import ModulesPanel from "../../components/shared/ModulesPanel";
 import DataPanel from "../../components/shared/DataPanel";
 import ModulePopup from "../../components/shared/ModulePopup";
@@ -28,14 +29,17 @@ import EmailConfig from "../../configs/EmailConfig";
 import SchedulerConfig from "../../configs/SchedulerConfig";
 import GoogleSheetsConfig from "../../configs/GoogleSheetsConfig";
 import GoogleDriveConfig from "../../configs/GoogleDriveConfig";
+import ConditionConfig from "../../configs/ConditionConfig";
 // handlers
 import { useModuleSaveHandler } from "../../hooks/useWebhookSaveHandler";
 import { useSchedulerSaveHandler } from "../../hooks/useSchedulerSaveHandler";
 import { useEmailSaveHandler } from "../../hooks/useEmailSaveHandler";
 import { useGoogleSheetsSaveHandler } from "../../hooks/useGoogleSheetsSaveHandler";
+import { useConditionSaveHandler } from "../../hooks/useConditionSaveHandler";
 
 const nodeTypes = {
   custom: CustomNode,
+  condition: ConditionNode,
   trigger: CustomNode,
   action: CustomNode,
 };
@@ -71,6 +75,7 @@ function WorkflowEditorInner() {
   const { handleSaveScheduler } = useSchedulerSaveHandler(workflowId);
   const { handleSaveEmail } = useEmailSaveHandler(workflowId);
   const { handleSaveGoogleSheets } = useGoogleSheetsSaveHandler(workflowId);
+  const { saveConditionConfig } = useConditionSaveHandler();
 
   const [workflowContext, setWorkflowContext] = useState({
     webhook: {
@@ -113,7 +118,7 @@ function WorkflowEditorInner() {
 
         try {
           const webhookRes = await api.get(
-            `/triggers/${workflowId}/trigger-secret`
+            `/triggers/${workflowId}/trigger-secret`,
           );
 
           setWorkflowContext({
@@ -128,7 +133,7 @@ function WorkflowEditorInner() {
       } catch (err) {
         console.error(
           "Error loading workflow:",
-          err.response?.data || err.message
+          err.response?.data || err.message,
         );
         toast.error("Failed to load workflow");
       } finally {
@@ -147,11 +152,21 @@ function WorkflowEditorInner() {
 
         if (!sourceNode || !targetNode) return eds;
 
+        // For condition nodes, sourceHandle must be set (true/false)
+        if (sourceNode.data?.actionType === "condition") {
+          if (!params.sourceHandle) {
+            toast.error(
+              "Must connect from either True or False output of Condition node",
+            );
+            return eds;
+          }
+        }
+
         if (!sourceNode.data.allowMultipleOutgoing) {
           const existingOut = eds.filter((e) => e.source === sourceNode.id);
           if (existingOut.length > 0) {
             toast.error(
-              `${sourceNode.data.label} can only connect to one node.`
+              `${sourceNode.data.label} can only connect to one node.`,
             );
             return eds;
           }
@@ -161,16 +176,22 @@ function WorkflowEditorInner() {
           const existingIn = eds.filter((e) => e.target === targetNode.id);
           if (existingIn.length > 0) {
             toast.error(
-              `${targetNode.data.label} accepts only one incoming connection.`
+              `${targetNode.data.label} accepts only one incoming connection.`,
             );
             return eds;
           }
         }
 
-        return addEdge(params, eds);
+        // Ensure edge has proper sourceHandle for condition nodes
+        const edge = { ...params };
+        if (sourceNode.data?.actionType === "condition" && !edge.sourceHandle) {
+          edge.sourceHandle = params.sourceHandle;
+        }
+
+        return addEdge(edge, eds);
       });
     },
-    [nodes, setEdges]
+    [nodes, setEdges],
   );
 
   const onDrop = useCallback(
@@ -197,7 +218,7 @@ function WorkflowEditorInner() {
 
       const newNode = {
         id: `${+new Date()}`,
-        type: "custom",
+        type: actionType === "condition" ? "condition" : "custom",
         position,
         data: {
           label: moduleName,
@@ -214,7 +235,7 @@ function WorkflowEditorInner() {
 
       setNodes((nds) => nds.concat(newNode));
     },
-    [setNodes, screenToFlowPosition, nodes]
+    [setNodes, screenToFlowPosition, nodes],
   );
 
   const onDragOver = useCallback((event) => {
@@ -253,7 +274,7 @@ function WorkflowEditorInner() {
       case "delete":
         setNodes((nds) => nds.filter((n) => n.id !== nodeId));
         setEdges((eds) =>
-          eds.filter((e) => e.source !== nodeId && e.target !== nodeId)
+          eds.filter((e) => e.source !== nodeId && e.target !== nodeId),
         );
         break;
       default:
@@ -358,6 +379,8 @@ function WorkflowEditorInner() {
             handleSaveEmail(activeNode, () => setPopupOpen(false));
           } else if (activeNode?.actionType === "google_sheets") {
             handleSaveGoogleSheets(activeNode, () => setPopupOpen(false));
+          } else if (activeNode?.actionType === "condition") {
+            // Handled by ConditionConfig onSave directly
           } else {
             handleSaveModule(activeNode, () => setPopupOpen(false));
           }
@@ -392,8 +415,8 @@ function WorkflowEditorInner() {
                 nds.map((n) =>
                   n.id === updatedNode.id
                     ? { ...n, data: { ...updatedNode } }
-                    : n
-                )
+                    : n,
+                ),
               );
             }}
           />
@@ -408,8 +431,8 @@ function WorkflowEditorInner() {
                 nds.map((n) =>
                   n.id === updatedNode.id
                     ? { ...n, data: { ...updatedNode } }
-                    : n
-                )
+                    : n,
+                ),
               );
             }}
           />
@@ -423,9 +446,44 @@ function WorkflowEditorInner() {
                 nds.map((n) =>
                   n.id === updatedNode.id
                     ? { ...n, data: { ...updatedNode } }
-                    : n
-                )
+                    : n,
+                ),
               );
+            }}
+          />
+        ) : activeNode?.actionType === "condition" ? (
+          <ConditionConfig
+            selectedNode={{
+              id: activeNode.id,
+              data: activeNode,
+            }}
+            onSave={async (conditionConfig) => {
+              try {
+                // Update node locally
+                setNodes((nds) =>
+                  nds.map((n) =>
+                    n.id === activeNode.id
+                      ? {
+                          ...n,
+                          data: {
+                            ...n.data,
+                            config: conditionConfig.config,
+                          },
+                        }
+                      : n,
+                  ),
+                );
+
+                // Save to server
+                await saveConditionConfig(
+                  workflowId,
+                  conditionConfig,
+                  activeNode.id,
+                );
+                setPopupOpen(false);
+              } catch (err) {
+                console.error("Error saving condition:", err);
+              }
             }}
           />
         ) : (

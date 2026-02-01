@@ -1,4 +1,13 @@
-import { FaGoogleDrive, FaSlack, FaDiscord, FaEnvelope, FaCode, FaLink, FaClock } from "react-icons/fa";
+import {
+  FaGoogleDrive,
+  FaSlack,
+  FaDiscord,
+  FaEnvelope,
+  FaCode,
+  FaLink,
+  FaClock,
+  FaCodeBranch,
+} from "react-icons/fa";
 import { SiGooglesheets } from "react-icons/si";
 
 export const actionStyles = {
@@ -51,5 +60,11 @@ export const actionStyles = {
     border: "2px solid #0d9488",
     icon: FaLink,
   },
-  
+  condition: {
+    label: "Condition",
+    color: "#8b5cf6",
+    gradient: "linear-gradient(135deg, #8b5cf6, #6d28d9)",
+    border: "2px solid #8b5cf6",
+    icon: FaCodeBranch,
+  },
 };

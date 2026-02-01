@@ -8,11 +8,18 @@ function WebhookTree({ data, path = "", onDrag, level = 0 }) {
     return (
       <div
         draggable
-        onDragStart={(e) => onDrag(e, path)}
-        className="ml-6 my-3 text-s cursor-grab flex gap-2 items-center py-1 px-3 rounded-full bg-purple-100 text-purple-700 font-mono shadow-md"
+        onDragStart={(e) => {
+          e.stopPropagation();
+          onDrag(e, path);
+        }}
+        onDragEnd={(e) => {
+          e.preventDefault();
+        }}
+        className="ml-6 my-3 text-s cursor-grab active:cursor-grabbing flex gap-2 items-center py-1 px-3 rounded-full bg-purple-100 text-purple-700 font-mono shadow-md hover:bg-purple-200 transition-all hover:scale-105 border-2 border-purple-200"
+        style={{ userSelect: "none" }}
       >
         <span className="text-purple-700">{path}</span>
-        <span className="text-gray-400">{typeof data}</span>
+        <span className="text-gray-400 text-xs">{typeof data}</span>
       </div>
     );
   }

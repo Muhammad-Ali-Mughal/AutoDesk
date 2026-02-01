@@ -6,6 +6,45 @@ import GoogleSheetsModel from "../models/GoogleSheets.model.js";
 import EmailModel from "../models/Email.model.js";
 import WorkflowLogModel from "../models/WorkflowLog.model.js";
 import ExecutionModel from "../models/Execution.model.js";
+import { validateConditionConfig } from "../engine/resolvers/conditionEvaluator.js";
+
+/**
+ * Validate workflow nodes and actions
+ * Checks condition node configs for correctness
+ */
+function validateWorkflowConfig(nodes, actions) {
+  if (!nodes || !Array.isArray(nodes)) {
+    return { valid: true }; // Empty workflow is okay
+  }
+
+  // Find all condition nodes
+  const conditionNodes = nodes.filter(
+    (n) => n.data?.actionType === "condition" || n.type === "condition",
+  );
+
+  for (const node of conditionNodes) {
+    // Find corresponding action
+    const action = actions?.find((a) => a.nodeId === node.id);
+
+    if (!action) {
+      return {
+        valid: false,
+        error: `Condition node "${node.data?.label}" has no configuration`,
+      };
+    }
+
+    // Validate condition config
+    const validation = validateConditionConfig(action.config);
+    if (!validation.valid) {
+      return {
+        valid: false,
+        error: `Condition node "${node.data?.label}": ${validation.error}`,
+      };
+    }
+  }
+
+  return { valid: true };
+}
 
 // ✅ Create workflow
 export const createWorkflow = async (req, res) => {
@@ -74,6 +113,15 @@ export const updateWorkflow = async (req, res) => {
     const { triggers, actions, status, name, description, nodes, edges } =
       req.body;
 
+    // Validate workflow config (especially condition nodes)
+    const validation = validateWorkflowConfig(nodes, actions);
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: validation.error,
+      });
+    }
+
     const workflow = await Workflow.findByIdAndUpdate(
       req.params.id,
       {
@@ -85,7 +133,7 @@ export const updateWorkflow = async (req, res) => {
         name,
         description,
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!workflow) {
