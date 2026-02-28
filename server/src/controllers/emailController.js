@@ -8,6 +8,9 @@ export const addEmailAction = async (req, res) => {
     if (!workflowId) {
       return res.status(400).json({ error: "Workflow ID is required" });
     }
+    if (!nodeId) {
+      return res.status(400).json({ error: "Node ID is required" });
+    }
     if (!to || !body) {
       return res
         .status(400)
@@ -17,6 +20,15 @@ export const addEmailAction = async (req, res) => {
     if (!workflow) {
       return res.status(404).json({ error: "Workflow not found" });
     }
+
+    const existing = await EmailAction.findOne({ workflowId, nodeId });
+    if (existing) {
+      return res.status(200).json({
+        message: "Email config already exists",
+        emailAction: existing,
+      });
+    }
+
     const emailAction = new EmailAction({
       workflowId,
       nodeId,

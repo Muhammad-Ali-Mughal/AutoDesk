@@ -1,13 +1,28 @@
 import { google } from "googleapis";
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 import GoogleAccount from "../models/GoogleAccount.model.js";
 
-const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Ensure env is loaded even if this module is imported outside src/index.js
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 export function createOAuthClient() {
+  const CLIENT_ID = process.env.GOOGLE_CLIENT_ID?.trim();
+  const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET?.trim();
+  const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI?.trim();
+
   if (!CLIENT_ID || !CLIENT_SECRET || !REDIRECT_URI) {
-    throw new Error("Google OAuth env vars are not configured");
+    const missing = [];
+    if (!CLIENT_ID) missing.push("GOOGLE_CLIENT_ID");
+    if (!CLIENT_SECRET) missing.push("GOOGLE_CLIENT_SECRET");
+    if (!REDIRECT_URI) missing.push("GOOGLE_REDIRECT_URI");
+    throw new Error(
+      `Google OAuth env vars are not configured. Missing: ${missing.join(", ")}`
+    );
   }
 
   return new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);

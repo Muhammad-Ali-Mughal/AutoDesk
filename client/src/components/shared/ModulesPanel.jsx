@@ -68,7 +68,10 @@ function ModulesPanel() {
       {/* Module Items (from actionStyles) */}
       <div className="space-y-3">
         {Object.entries(actionStyles)
-        .filter(([type]) => type !== "custom")
+        .filter(
+          ([type]) =>
+            type !== "custom" && type !== "slack" && type !== "discord",
+        )
         .map(([type, style]) => {
           const Icon = style.icon;
           return (

@@ -45,6 +45,8 @@ export default function EmailConfig({ node, workflowId, onChange }) {
   }, [workflowId, node?.id]);
 
   useEffect(() => {
+    if (loading || !node?.id) return;
+
     onChange?.({
       ...node,
       id: node?.id,
@@ -56,7 +58,7 @@ export default function EmailConfig({ node, workflowId, onChange }) {
         body,
       },
     });
-  }, [to, subject, body]);
+  }, [to, subject, body, loading, node?.id]);
 
   if (loading) return <div>Loading...</div>;
 

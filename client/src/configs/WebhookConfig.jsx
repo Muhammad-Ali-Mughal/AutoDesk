@@ -11,10 +11,18 @@ function WebhookConfig({ node, workflowId, onContextUpdate }) {
   const [loading, setLoading] = useState(true);
   const [isListening, setIsListening] = useState(false);
   const [parsedFields, setParsedFields] = useState([]);
-  const [samplePayload, setSamplePayload] = useState(null);
 
   const pollingRef = useRef(null);
   const timeoutRef = useRef(null);
+  const hasNotifiedPayloadRef = useRef(false);
+  const listenSessionRef = useRef(0);
+  const activeSessionRef = useRef(0);
+  const isListeningRef = useRef(false);
+
+  const setListeningState = (value) => {
+    isListeningRef.current = value;
+    setIsListening(value);
+  };
 
   /* ----------------------------- Utilities ----------------------------- */
 
@@ -49,8 +57,7 @@ function WebhookConfig({ node, workflowId, onContextUpdate }) {
       setSecret("");
       setRequestMethod("POST");
       setParsedFields([]);
-      setSamplePayload(null);
-      setIsListening(false);
+      setListeningState(false);
 
       const res = await api.get(`/triggers/${workflowId}/trigger-secret`);
       const {
@@ -68,8 +75,7 @@ function WebhookConfig({ node, workflowId, onContextUpdate }) {
         setSecret(dbSecret);
         setRequestMethod(dbMethod || "POST");
         setParsedFields(parsedFields || []);
-        setSamplePayload(samplePayload || null);
-        setIsListening(isListening || false);
+        setListeningState(isListening || false);
 
         node.data = {
           ...node.data,
@@ -164,20 +170,25 @@ function WebhookConfig({ node, workflowId, onContextUpdate }) {
     try {
       await ensureWebhookExists();
 
-      setIsListening(true);
+      const sessionId = ++listenSessionRef.current;
+      activeSessionRef.current = sessionId;
+      hasNotifiedPayloadRef.current = false;
+
+      setListeningState(true);
       setParsedFields([]);
-      setSamplePayload(null);
 
       await api.post(`/triggers/${workflowId}/webhook/listen`);
       toast.success("Listening for incoming webhook");
 
-      pollingRef.current = setInterval(fetchWebhookData, 2500);
+      clearInterval(pollingRef.current);
+      clearTimeout(timeoutRef.current);
+      pollingRef.current = setInterval(() => fetchWebhookData(sessionId), 2500);
       timeoutRef.current = setTimeout(() => {
         toast("Listening timed out");
         stopListening();
       }, LISTEN_TIMEOUT);
     } catch {
-      setIsListening(false);
+      setListeningState(false);
       toast.error("Failed to start listening");
     }
   };
@@ -191,30 +202,42 @@ function WebhookConfig({ node, workflowId, onContextUpdate }) {
   };
 
   const cleanupListening = () => {
-    setIsListening(false);
+    setListeningState(false);
+    activeSessionRef.current = 0;
     clearInterval(pollingRef.current);
     clearTimeout(timeoutRef.current);
+    pollingRef.current = null;
+    timeoutRef.current = null;
   };
 
-  const fetchWebhookData = async () => {
+  const fetchWebhookData = async (sessionId) => {
     try {
+      if (!isListeningRef.current || activeSessionRef.current !== sessionId) {
+        return;
+      }
+
       const res = await api.get(`/triggers/${workflowId}/trigger-secret`);
       const { parsedFields, samplePayload } = res.data || {};
 
       if (parsedFields?.length) setParsedFields(parsedFields);
 
       if (samplePayload) {
-        setSamplePayload(samplePayload);
+        if (activeSessionRef.current !== sessionId) return;
 
         onContextUpdate?.({
           parsedFields: parsedFields || [],
           samplePayload,
         });
 
-        toast.success("Payload received");
+        if (!hasNotifiedPayloadRef.current) {
+          hasNotifiedPayloadRef.current = true;
+          toast.success("Payload received");
+        }
         cleanupListening();
       }
-    } catch {}
+    } catch {
+      return;
+    }
   };
 
   /* ------------------------------- Render ------------------------------- */

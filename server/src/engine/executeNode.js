@@ -1,25 +1,16 @@
 import { resolveAction } from "./resolvers/actionResolver.js";
 import handlers from "./handlers/index.js";
 
-/**
- * 🔑 Robust action type resolver
- */
 function resolveActionType({ node, action }) {
-  // 1️⃣ Preferred (explicit)
   if (node?.data?.actionType) {
     return node.data.actionType.toLowerCase();
   }
-
-  // 2️⃣ UI label fallback
   if (node?.data?.label) {
     return node.data.label.toLowerCase().replace(/\s+/g, "_");
   }
-
-  // 3️⃣ Legacy DB fallback (LAST)
   if (action?.type) {
     return action.type.toLowerCase();
   }
-
   return null;
 }
 
@@ -104,11 +95,8 @@ export async function executeNode(nodeId, workflow, context, log) {
     }
 
     console.log(`➡ Forwarding to ${actionType} handler`);
-
     output = await handler(action || {}, context, log);
-
     console.log(`✅ Handler output:`, output);
-
     context.steps ??= {};
     context.steps[node.id] = output;
 
@@ -118,15 +106,11 @@ export async function executeNode(nodeId, workflow, context, log) {
   } else {
     stepLog.status = "skipped";
   }
-
   log.executionSteps.push(stepLog);
-
-  // 🔁 Traverse graph with condition-aware edge picking
   const nextEdges = pickNextEdges(nodeId, output, workflow.edges, actionType);
   console.log(
     `📍 Node ${nodeId} (${actionType}): Found ${nextEdges.length} outgoing edges`,
   );
-
   for (const edge of nextEdges) {
     console.log(`↪️ Following edge to ${edge.target}`);
     await executeNode(edge.target, workflow, context, log);

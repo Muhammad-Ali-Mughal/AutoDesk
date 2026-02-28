@@ -7,7 +7,6 @@ import { seedRoles } from "./seeds/seedRoles.js";
 import workflowRoute from "./routes/workflowRoute.js";
 import triggerRoutes from "./routes/triggerRoutes.js";
 import publicWebhookRoutes from "./routes/publicWebhookRoutes.js";
-import { loadSchedules } from "./services/scheduler.js";
 import scheduleRoutes from "./routes/scheduleRoutes.js";
 import emailRoutes from "./routes/emailRoutes.js";
 import googleRoutes from "./routes/googleRoutes.js";
@@ -59,9 +58,6 @@ app.get("/", (req, res) => {
     message: "Autodesk server is running",
   });
 });
-
-// Loading Schedules
-loadSchedules();
 
 // SEEDS
 // seedRoles()

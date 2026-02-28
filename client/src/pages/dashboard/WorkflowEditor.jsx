@@ -414,7 +414,7 @@ function WorkflowEditorInner() {
               setNodes((nds) =>
                 nds.map((n) =>
                   n.id === updatedNode.id
-                    ? { ...n, data: { ...updatedNode } }
+                    ? { ...n, data: { ...n.data, ...(updatedNode.data || {}) } }
                     : n,
                 ),
               );
@@ -430,7 +430,7 @@ function WorkflowEditorInner() {
               setNodes((nds) =>
                 nds.map((n) =>
                   n.id === updatedNode.id
-                    ? { ...n, data: { ...updatedNode } }
+                    ? { ...n, data: { ...n.data, ...(updatedNode.data || {}) } }
                     : n,
                 ),
               );
@@ -445,7 +445,7 @@ function WorkflowEditorInner() {
               setNodes((nds) =>
                 nds.map((n) =>
                   n.id === updatedNode.id
-                    ? { ...n, data: { ...updatedNode } }
+                    ? { ...n, data: { ...n.data, ...(updatedNode.data || {}) } }
                     : n,
                 ),
               );

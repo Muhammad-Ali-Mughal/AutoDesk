@@ -87,6 +87,8 @@ const edgeSchema = new mongoose.Schema(
     id: { type: String, required: true },
     source: { type: String, required: true },
     target: { type: String, required: true },
+    sourceHandle: { type: String },
+    targetHandle: { type: String },
     label: { type: String },
   },
   { _id: false }
