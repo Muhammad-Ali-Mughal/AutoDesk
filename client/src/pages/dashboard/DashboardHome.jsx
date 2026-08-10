@@ -9,7 +9,7 @@ import {
   FaExclamationTriangle,
 } from "react-icons/fa";
 import api from "../../utils/api.js";
-
+import { useNavigate } from "react-router-dom";
 export default function Dashboard() {
   const [stats, setStats] = useState({
     credits: 0,
@@ -21,7 +21,7 @@ export default function Dashboard() {
     topWorkflows: [],
   });
   const [loading, setLoading] = useState(true);
-
+const navigate = useNavigate();
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -52,13 +52,14 @@ export default function Dashboard() {
               Welcome back! Here's your automation activity overview.
             </p>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.97 }}
-            className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-5 py-3 rounded-xl shadow-md"
-          >
-            <FaPlus /> New Workflow
-          </motion.button>
+       <motion.button
+  whileHover={{ scale: 1.05 }}
+  whileTap={{ scale: 0.97 }}
+  onClick={() => navigate("/dashboard/Workflows")}
+  className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-5 py-3 rounded-xl shadow-md"
+>
+  <FaPlus /> New Workflow
+</motion.button>
         </div>
 
         {/* Stats Cards */}
@@ -147,13 +148,12 @@ export default function Dashboard() {
                       </p>
                     </div>
                     <span
-                      className={`px-3 py-1 text-xs rounded-full ${
-                        exec.status === "success"
+                      className={`px-3 py-1 text-xs rounded-full ${exec.status === "success"
                           ? "bg-green-100 text-green-700"
                           : exec.status === "failed"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-gray-100 text-gray-600"
-                      }`}
+                            ? "bg-red-100 text-red-700"
+                            : "bg-gray-100 text-gray-600"
+                        }`}
                     >
                       {exec.status}
                     </span>

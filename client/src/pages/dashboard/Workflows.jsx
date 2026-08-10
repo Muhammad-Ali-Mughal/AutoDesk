@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import api from "../../utils/api";
 import toast from "react-hot-toast";
 import { actionStyles } from "../../utils/actionStyles";
-
+import { useNavigate } from "react-router-dom";
 export default function Workflows() {
   const [workflows, setWorkflows] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -138,12 +138,14 @@ export default function Workflows() {
             WorkFlows
             <span className="text-gray-400 text-sm">•</span>
           </h1>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#642c8f] text-white cursor-pointer rounded-lg shadow hover:bg-[#7a3bb3] transition"
-          >
-            <FaPlus /> New Workflow
-          </button>
+          <motion.button
+  whileHover={{ scale: 1.05 }}
+  whileTap={{ scale: 0.97 }}
+  onClick={() => setIsModalOpen(true)}
+  className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-5 py-3 rounded-xl shadow-md"
+>
+  <FaPlus /> New Workflow
+</motion.button>
         </div>
 
         {/* Workflows List */}
