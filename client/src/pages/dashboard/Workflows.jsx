@@ -43,8 +43,7 @@ export default function Workflows() {
         )
       );
       toast.success(
-        `Workflow ${
-          newStatus === "active" ? "activated" : "paused"
+        `Workflow ${newStatus === "active" ? "activated" : "paused"
         } successfully`
       );
     } catch (err) {
@@ -224,16 +223,14 @@ export default function Workflows() {
                   {/* Toggle */}
                   <button
                     onClick={() => toggleWorkflow(wf._id, wf.status)}
-                    className={`w-14 h-7 flex items-center rounded-full p-1 transition ${
-                      wf.status === "active" ? "bg-[#642c8f]" : "bg-gray-300"
-                    }`}
+                    className={`w-14 h-7 flex items-center rounded-full p-1 transition ${wf.status === "active" ? "bg-[#642c8f]" : "bg-gray-300"
+                      }`}
                   >
                     <div
-                      className={`bg-white w-5 h-5 rounded-full shadow-md transform transition ${
-                        wf.status === "active"
+                      className={`bg-white w-5 h-5 rounded-full shadow-md transform transition ${wf.status === "active"
                           ? "translate-x-7"
                           : "translate-x-0"
-                      }`}
+                        }`}
                     />
                   </button>
 
