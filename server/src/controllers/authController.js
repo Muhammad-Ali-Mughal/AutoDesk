@@ -85,7 +85,18 @@ export const registerUser = async (req, res) => {
       });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Server Error" });
+
+    if (err.name === "ValidationError") {
+      return res.status(400).json({
+        message: Object.values(err.errors)
+          .map((error) => error.message)
+          .join(", "),
+      });
+    }
+
+    return res.status(500).json({
+      message: "Server Error",
+    });
   }
 };
 
