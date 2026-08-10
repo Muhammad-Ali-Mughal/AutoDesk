@@ -16,12 +16,12 @@ export const getSettings = async (req, res) => {
       user.credits && typeof user.credits === "object"
         ? user.credits
         : {
-            totalCredits: 100,
-            usedCredits: 0,
-            remainingCredits: 100,
-            lastReset: null,
-            nextReset: null,
-          };
+          totalCredits: 100,
+          usedCredits: 0,
+          remainingCredits: 100,
+          lastReset: null,
+          nextReset: null,
+        };
 
     res.json({
       profile: {
@@ -76,7 +76,7 @@ export const updateProfile = async (req, res) => {
 export const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).select("+password");
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -84,8 +84,7 @@ export const changePassword = async (req, res) => {
     if (!isMatch)
       return res.status(400).json({ message: "Current password is incorrect" });
 
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
+    user.password = newPassword;
     await user.save();
 
     res.json({ message: "Password updated successfully" });

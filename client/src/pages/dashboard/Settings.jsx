@@ -20,6 +20,7 @@ export default function Settings() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    currentPassword: "",
     password: "",
     confirmPassword: "",
   });
@@ -33,6 +34,7 @@ export default function Settings() {
         setFormData({
           name: profile.name || "",
           email: profile.email || "",
+          currentPassword: "",
           password: "",
           confirmPassword: "",
         });
@@ -64,8 +66,14 @@ export default function Settings() {
 
   // Save profile changes
   const handleSaveChanges = async () => {
+    console.log("Form Data:", formData); // Debugging line
     if (!formData.name.trim() || !formData.email.trim()) {
       return toast.error("Name and email are required");
+    }
+    if (formData.password) {
+      if (!formData.currentPassword) {
+        return toast.error("Current password is required");
+      }
     }
     if (formData.password && formData.password !== formData.confirmPassword) {
       return toast.error("Passwords do not match");
@@ -77,15 +85,25 @@ export default function Settings() {
         name: formData.name,
         email: formData.email,
       };
-      if (formData.password) payload.password = formData.password;
+      console.log("SENDING PROFILE REQUEST:", payload);
 
       const res = await api.put("/settings/profile", payload);
+
+      if (formData.password) {
+        console.log("SENDING PASSWORD REQUEST");
+
+        await api.put("/settings/password", {
+          currentPassword: formData.currentPassword,
+          newPassword: formData.password,
+        });
+      }
       toast.success("Profile updated successfully!");
       setUser(res.data.user);
       setFormData((prev) => ({
         ...prev,
         password: "",
         confirmPassword: "",
+        currentPassword: "",
       }));
     } catch (err) {
       console.error("Error updating profile:", err);
@@ -169,7 +187,24 @@ export default function Settings() {
               </div>
             </div>
           </div>
+          <div>
+            <label className="block text-gray-600 text-sm mb-1">
+              Current Password
+            </label>
 
+            <div className="relative">
+              <FaLock className="absolute left-3 top-3 text-gray-400" />
+
+              <input
+                type="password"
+                name="currentPassword"
+                value={formData.currentPassword}
+                onChange={handleChange}
+                className="w-full pl-10 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#642c8f] focus:outline-none"
+                placeholder="Enter current password"
+              />
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-gray-600 text-sm mb-1">
