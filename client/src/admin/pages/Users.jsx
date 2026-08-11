@@ -1,23 +1,45 @@
 import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import api from "../../utils/api";
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get("/superadmin/users");
+      setUsers(res.data);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load users");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        const res = await api.get("/superadmin/users");
-        setUsers(res.data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
+    fetchUsers();
   }, []);
+
+  const handleDelete = async (userId, userName) => {
+    if (!window.confirm(`Delete user "${userName}"? This cannot be undone.`)) {
+      return;
+    }
+    try {
+      setDeletingId(userId);
+      await api.delete(`/superadmin/users/${userId}`);
+      setUsers((prev) => prev.filter((u) => u._id !== userId));
+      toast.success("User deleted");
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.response?.data?.message || "Failed to delete user");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -56,8 +78,12 @@ export default function UsersPage() {
                       <button className="px-3 py-1 rounded bg-indigo-50 text-indigo-700 border">
                         Edit
                       </button>
-                      <button className="px-3 py-1 rounded bg-red-50 text-red-600 border">
-                        Delete
+                      <button
+                        onClick={() => handleDelete(u._id, u.name)}
+                        disabled={deletingId === u._id}
+                        className="px-3 py-1 rounded bg-red-50 text-red-600 border disabled:opacity-50"
+                      >
+                        {deletingId === u._id ? "Deleting..." : "Delete"}
                       </button>
                     </div>
                   </td>
