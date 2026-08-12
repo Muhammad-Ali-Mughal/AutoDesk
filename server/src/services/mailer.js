@@ -29,22 +29,17 @@ function createMailer() {
 }
 
 export async function sendEmail({ to, subject, body }) {
-  try {
-    const mailer = createMailer();
-    const fromUser = process.env.GMAIL_USER?.trim();
+  const mailer = createMailer();
+  const fromUser = process.env.GMAIL_USER?.trim();
 
-    const info = await mailer.sendMail({
-      from: `"AutoDesk" <${fromUser}>`,
-      to,
-      subject,
-      text: body,
-      html: `<p>${body}</p>`,
-    });
+  const info = await mailer.sendMail({
+    from: `"AutoDesk" <${fromUser}>`,
+    to,
+    subject,
+    text: body,
+    html: `<p>${body}</p>`,
+  });
 
-    console.log("📧 Email sent:", to, info.messageId);
-    return { success: true, id: info.messageId };
-  } catch (err) {
-    console.error("❌ Email sending failed:", err);
-    return { success: false, error: err.message };
-  }
+  console.log("📧 Email sent:", to, info.messageId);
+  return { success: true, id: info.messageId };
 }

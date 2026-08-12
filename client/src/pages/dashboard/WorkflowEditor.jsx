@@ -22,6 +22,25 @@ import api from "../../utils/api";
 import toast from "react-hot-toast";
 import { moduleRules } from "../../utils/moduleRules";
 import { actionStyles } from "../../utils/actionStyles";
+
+// Checks whether connecting sourceId -> targetId would create a loop
+// by walking forward from targetId and seeing if we ever reach sourceId.
+function wouldCreateCycle(sourceId, targetId, edges) {
+  if (sourceId === targetId) return true;
+  const queue = [targetId];
+  const seen = new Set();
+  while (queue.length) {
+    const current = queue.shift();
+    if (current === sourceId) return true;
+    if (seen.has(current)) continue;
+    seen.add(current);
+    edges
+      .filter((e) => e.source === current)
+      .forEach((e) => queue.push(e.target));
+  }
+  return false;
+}
+
 // configs
 import WebhookConfig from "../../configs/WebhookConfig";
 import DefaultConfig from "../../configs/DefaultConfig";
@@ -151,6 +170,12 @@ function WorkflowEditorInner() {
         const targetNode = nodes.find((n) => n.id === params.target);
 
         if (!sourceNode || !targetNode) return eds;
+
+        // Prevent connections that would create a loop in the workflow
+        if (wouldCreateCycle(sourceNode.id, targetNode.id, eds)) {
+          toast.error("This connection would create a loop in the workflow.");
+          return eds;
+        }
 
         // For condition nodes, sourceHandle must be set (true/false)
         if (sourceNode.data?.actionType === "condition") {

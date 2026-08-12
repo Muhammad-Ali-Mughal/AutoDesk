@@ -64,7 +64,22 @@ function pickNextEdges(nodeId, result, edges, actionType) {
   return outgoingEdges;
 }
 
-export async function executeNode(nodeId, workflow, context, log) {
+export async function executeNode(nodeId, workflow, context, log, visited = new Set()) {
+  if (visited.has(nodeId)) {
+    console.warn(`⚠️ Cycle detected at node ${nodeId} — stopping this branch to avoid infinite loop`);
+    log.executionSteps.push({
+      nodeId,
+      stepName: "Cycle guard",
+      action: "cycle_detected",
+      status: "skipped",
+      errorMessage: "Cycle detected — this branch was stopped to avoid an infinite loop",
+      startedAt: new Date(),
+      completedAt: new Date(),
+    });
+    return;
+  }
+  visited.add(nodeId);
+
   const node = workflow.nodes.find((n) => n.id === nodeId);
   if (!node) return;
 
@@ -91,18 +106,31 @@ export async function executeNode(nodeId, workflow, context, log) {
     const handler = handlers[actionType];
 
     if (!handler) {
-      throw new Error(`No handler registered for action type: ${actionType}`);
+      stepLog.status = "failed";
+      stepLog.errorMessage = `No handler registered for action type: ${actionType}`;
+      stepLog.completedAt = new Date();
+      log.executionSteps.push(stepLog);
+      return; // stop this branch only, other branches/steps are unaffected
     }
 
-    console.log(`➡ Forwarding to ${actionType} handler`);
-    output = await handler(action || {}, context, log);
-    console.log(`✅ Handler output:`, output);
-    context.steps ??= {};
-    context.steps[node.id] = output;
+    try {
+      console.log(`➡ Forwarding to ${actionType} handler`);
+      output = await handler(action || {}, context, log);
+      console.log(`✅ Handler output:`, output);
+      context.steps ??= {};
+      context.steps[node.id] = output;
 
-    stepLog.status = "success";
-    stepLog.output = output;
-    stepLog.completedAt = new Date();
+      stepLog.status = "success";
+      stepLog.output = output;
+      stepLog.completedAt = new Date();
+    } catch (err) {
+      console.error(`❌ Node ${nodeId} (${actionType}) failed:`, err.message);
+      stepLog.status = "failed";
+      stepLog.errorMessage = err.message;
+      stepLog.completedAt = new Date();
+      log.executionSteps.push(stepLog);
+      return; // stop following edges from a failed node, but keep earlier successful steps
+    }
   } else {
     stepLog.status = "skipped";
   }
@@ -113,6 +141,6 @@ export async function executeNode(nodeId, workflow, context, log) {
   );
   for (const edge of nextEdges) {
     console.log(`↪️ Following edge to ${edge.target}`);
-    await executeNode(edge.target, workflow, context, log);
+    await executeNode(edge.target, workflow, context, log, visited);
   }
 }
