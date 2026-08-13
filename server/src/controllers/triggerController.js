@@ -27,6 +27,14 @@ export const startWebhookListening = async (req, res) => {
   const { workflowId } = req.params;
   const user = req.user;
 
+  const workflow = await Workflow.findOne({
+    _id: workflowId,
+    $or: [{ organizationId: user.organizationId }, { userId: user._id }],
+  });
+  if (!workflow) {
+    return res.status(404).json({ error: "Workflow not found" });
+  }
+
   const webhook = await Webhook.findOne({ workflowId });
 
   if (!webhook) {
@@ -46,6 +54,15 @@ export const startWebhookListening = async (req, res) => {
 
 export const stopWebhookListening = async (req, res) => {
   const { workflowId } = req.params;
+  const user = req.user;
+
+  const workflow = await Workflow.findOne({
+    _id: workflowId,
+    $or: [{ organizationId: user.organizationId }, { userId: user._id }],
+  });
+  if (!workflow) {
+    return res.status(404).json({ error: "Workflow not found" });
+  }
 
   const webhook = await Webhook.findOne({ workflowId });
   if (!webhook) {
@@ -70,6 +87,16 @@ export const publicWebhookTrigger = async (req, res) => {
     const workflow = await Workflow.findById(workflowId);
     if (!workflow) {
       return res.status(404).json({ error: "Workflow not found" });
+    }
+
+    // The workflow's own status is the real on/off switch the user controls
+    // from the dashboard (draft/active/paused/archived). The Webhook
+    // document's status is a separate, unrelated field — checking only that
+    // one let paused/archived workflows keep executing on every request.
+    if (workflow.status !== "active") {
+      return res.status(423).json({
+        error: `This workflow is currently '${workflow.status}' and is not accepting triggers.`,
+      });
     }
 
     const webhook = await Webhook.findOne({
@@ -112,7 +139,6 @@ export const publicWebhookTrigger = async (req, res) => {
     await executeWorkflow(workflow, payload, {
       executedBy: workflow.organizationId,
       organizationId: workflow.organizationId,
-      visitedNodesID:workflow.visitedNodes,
     });
 
     return res.json({
@@ -237,6 +263,15 @@ export const updateWorkflowWebhook = async (req, res) => {
 export const getTriggerSecret = async (req, res) => {
   try {
     const { workflowId } = req.params;
+    const user = req.user;
+
+    const workflow = await Workflow.findOne({
+      _id: workflowId,
+      $or: [{ organizationId: user.organizationId }, { userId: user._id }],
+    });
+    if (!workflow) {
+      return res.status(404).json({ message: "Workflow not found" });
+    }
 
     const webhook = await Webhook.findOne({ workflowId, status: "active" });
     if (webhook) {
