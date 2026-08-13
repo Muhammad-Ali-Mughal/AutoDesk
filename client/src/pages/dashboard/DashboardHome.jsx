@@ -151,9 +151,11 @@ export default function Dashboard() {
                     </div>
                     <span
                       className={`px-3 py-1 text-xs rounded-full ${exec.status === "success"
-                          ? "bg-green-100 text-green-700"
-                          : exec.status === "failed"
-                            ? "bg-red-100 text-red-700"
+                        ? "bg-green-100 text-green-700"
+                        : exec.status === "failed"
+                          ? "bg-red-100 text-red-700"
+                          : exec.status === "partial"
+                            ? "bg-amber-100 text-amber-700"
                             : "bg-gray-100 text-gray-600"
                         }`}
                     >

@@ -54,7 +54,7 @@ const workflowLogSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["running", "success", "failed"],
+      enum: ["running", "success", "failed", "partial"],
       default: "running",
     },
     startedAt: { type: Date, default: Date.now },

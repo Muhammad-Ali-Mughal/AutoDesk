@@ -112,6 +112,7 @@ export const publicWebhookTrigger = async (req, res) => {
     await executeWorkflow(workflow, payload, {
       executedBy: workflow.organizationId,
       organizationId: workflow.organizationId,
+      visitedNodesID:workflow.visitedNodes,
     });
 
     return res.json({
