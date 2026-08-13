@@ -60,6 +60,7 @@ export default function Analytics() {
     successRate: 0,
     avgDuration: 0,
     failedExecutions: 0,
+    partialExecutions: 0,
     executionsOverTime: [],
     workflowStats: [],
     actionStats: [],
@@ -98,6 +99,7 @@ export default function Analytics() {
           successRate: res.data.successRate ?? 0,
           avgDuration: res.data.avgDuration ?? 0,
           failedExecutions: res.data.failedExecutions ?? 0,
+          partialExecutions: res.data.partialExecutions ?? 0,
           executionsOverTime: res.data.executionsOverTime ?? [],
           workflowStats: res.data.workflowStats ?? [],
           actionStats: res.data.actionStats ?? [],
@@ -116,12 +118,20 @@ export default function Analytics() {
     };
   }, [status, dateRange.start, dateRange.end]);
 
-  // Derived data for pie
+  // Derived data for pie — computed from real counts so "partial" runs get
+  // their own slice instead of being visually lumped in with "failed".
+  const partialPct = stats.totalExecutions
+    ? Math.round((stats.partialExecutions / stats.totalExecutions) * 100)
+    : 0;
+  const failedPct = stats.totalExecutions
+    ? Math.round((stats.failedExecutions / stats.totalExecutions) * 100)
+    : 0;
   const pieData = [
     { name: "Success", value: stats.successRate },
-    { name: "Failed", value: Math.max(0, 100 - stats.successRate) },
+    { name: "Partial", value: partialPct },
+    { name: "Failed", value: failedPct },
   ];
-  const PIE_COLORS = ["#7c3aed", "#e9d5ff"]; // violet vs pale
+  const PIE_COLORS = ["#7c3aed", "#f59e0b", "#e9d5ff"]; // violet, amber, pale
 
   return (
     <div className={`${PALE_BG} min-h-screen p-6 md:p-8`}>
