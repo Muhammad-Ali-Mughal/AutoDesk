@@ -35,6 +35,8 @@ export const getAnalytics = async (req, res) => {
     // --- BASIC METRICS ---
     const total = logs.length;
     const success = logs.filter((l) => l.status === "success").length;
+    const partial = logs.filter((l) => l.status === "partial").length;
+    const failed = logs.filter((l) => l.status === "failed").length;
     const avgDuration =
       logs.reduce((sum, l) => {
         if (l.startedAt && l.finishedAt) {
@@ -149,7 +151,8 @@ export const getAnalytics = async (req, res) => {
       totalExecutions: total,
       successRate: Math.round((success / total) * 100) || 0,
       avgDuration: (avgDuration / 1000).toFixed(1),
-      failedExecutions: total - success,
+      failedExecutions: failed,
+      partialExecutions: partial,
       executionsOverTime,
       workflowStats,
       actionStats,
