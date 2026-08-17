@@ -20,6 +20,11 @@ export async function executeWorkflow(
     status: "running",
   });
 
+  // ✅ Create execution document immediately
+  await log.save();
+
+  console.log("📝 Execution log created:", log._id);
+
   const user = await UserModel.findById(workflow.userId);
   if (!user) throw new Error("User not found");
 
@@ -28,41 +33,56 @@ export async function executeWorkflow(
     workflow,
   });
 
-  const triggerNode =
-    workflow.nodes.find((n) =>
-      ["webhook", "schedule"].includes(n.data?.actionType)
-    ) || workflow.nodes[0];
+  const triggerNode = workflow.nodes.find((n) => {
+    const actionType = n.data?.actionType || n.data?.label;
+    return ["webhook", "schedule"].includes(actionType);
+  });
+
+  if (!triggerNode) {
+    throw new Error("No webhook or schedule trigger node found");
+  };
 
   try {
     await checkAndConsumeCredit(user._id);
-    await executeNode(triggerNode.id, workflow, context, log);
 
-    // Decide overall status based on how individual steps actually went —
-    // this is what lets us distinguish "success" from "partial" (some steps
-    // failed but others completed) instead of only success/failed.
+    await executeNode(
+      triggerNode.id,
+      workflow,
+      context,
+      log
+    );
+
     const steps = log.executionSteps;
-    const hasFailed = steps.some((s) => s.status === "failed");
-    const hasSucceeded = steps.some((s) => s.status === "success");
+
+    const hasFailed = steps.some(
+      (s) => s.status === "failed"
+    );
+
+    const hasSucceeded = steps.some(
+      (s) => s.status === "success"
+    );
 
     if (hasFailed && hasSucceeded) {
       log.status = "partial";
-      console.log("⚠️ Workflow execution finished partially (some steps failed)");
     } else if (hasFailed && !hasSucceeded) {
       log.status = "failed";
-      console.log("❌ Workflow execution failed (no step succeeded)");
     } else {
       log.status = "success";
-      console.log("✅ Workflow execution finished successfully");
     }
   } catch (err) {
-    // Only truly unexpected/system-level errors land here now
-    // (per-node handler errors are caught inside executeNode itself)
-    console.error("❌ Workflow execution failed:", err.message);
-    console.error(err.stack);
+    console.error(
+      "❌ Workflow execution failed:",
+      err.message
+    );
+
     log.status = "failed";
     log.errorMessage = err.message;
   } finally {
     log.finishedAt = new Date();
+
+    // ✅ Save final execution result
     await log.save();
+
+    console.log("💾 Execution log updated:", log._id);
   }
 }
