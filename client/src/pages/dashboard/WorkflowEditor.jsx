@@ -104,65 +104,77 @@ function WorkflowEditorInner() {
   });
 
   // ✅ Load workflow when editor opens
-  useEffect(() => {
-    const fetchWorkflow = async () => {
-      if (!workflowId) return;
+// ✅ Load workflow when editor opens
+useEffect(() => {
+  const fetchWorkflow = async () => {
+    if (!workflowId) return;
+
+    try {
+      const res = await api.get(`/workflows/${workflowId}`);
+      const wf = res.data.workflow;
+
+      const decoratedNodes = (wf.nodes || []).map((n) => {
+        const actionType =
+          n.data?.actionType || getActionType(n.data?.label);
+
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            actionType,
+            service: n.data?.service || n.data?.label || "Custom",
+            secret: undefined,
+            config: n.data?.config || n.config || {},
+          },
+        };
+      });
+
+      setNodes(decoratedNodes);
+      setEdges(wf.edges || []);
 
       try {
-        const res = await api.get(`/workflows/${workflowId}`);
-        const wf = res.data.workflow;
-
-        const decoratedNodes = (wf.nodes || []).map((n) => {
-          const actionType = n.data?.actionType || getActionType(n.data?.label);
-          const secret =
-            actionType === "webhook" && wf.triggers?.type === "webhook"
-              ? wf.triggers.webhookSecret
-              : undefined;
-
-          return {
-            ...n,
-            data: {
-              ...n.data,
-              actionType,
-              service: n.data?.service || n.data?.label || "Custom",
-              secret,
-              // 🔑 normalize config here
-              config: n.data?.config || n.config || {},
-            },
-          };
-        });
-
-        setNodes(decoratedNodes);
-        setEdges(wf.edges || []);
-
-        try {
-          const webhookRes = await api.get(
-            `/triggers/${workflowId}/trigger-secret`,
-          );
-
-          setWorkflowContext({
-            webhook: {
-              payload: webhookRes.data.samplePayload || null,
-              fields: webhookRes.data.parsedFields || [],
-            },
-          });
-        } catch (e) {
-          console.warn("No webhook payload yet");
-        }
-      } catch (err) {
-        console.error(
-          "Error loading workflow:",
-          err.response?.data || err.message,
+        const webhookRes = await api.get(
+          `/triggers/${workflowId}/trigger-secret`,
         );
-        toast.error("Failed to load workflow");
-      } finally {
-        setLoading(false);
+
+        const webhookSecret = webhookRes.data.secret;
+
+        setNodes((nds) =>
+          nds.map((n) =>
+            n.data?.actionType === "webhook"
+              ? {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    secret: webhookSecret,
+                  },
+                }
+              : n,
+          ),
+        );
+
+        setWorkflowContext({
+          webhook: {
+            payload: webhookRes.data.samplePayload || null,
+            fields: webhookRes.data.parsedFields || [],
+          },
+        });
+      } catch (e) {
+        console.warn("No webhook payload yet");
       }
-    };
+    } catch (err) {
+      console.error(
+        "Error loading workflow:",
+        err.response?.data || err.message,
+      );
+      toast.error("Failed to load workflow");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchWorkflow();
-  }, [workflowId, setNodes, setEdges]);
-
+  fetchWorkflow();
+}, [workflowId, setNodes, setEdges]);
   const onConnect = useCallback(
     (params) => {
       setEdges((eds) => {
@@ -335,13 +347,17 @@ function WorkflowEditorInner() {
         })),
         edges,
         actions,
-        triggers: webhookNode
-          ? {
-              type: "webhook",
-              webhookSecret: webhookNode.data.secret,
-            }
-          : null,
       };
+
+      // Only touch `triggers` when we actually have a real webhook secret to
+      // save — never send a null/undefined-secret object, since that wipes
+      // whatever trigger config (webhook OR schedule) was already stored.
+      if (webhookNode?.data?.secret) {
+        payload.triggers = {
+          type: "webhook",
+          webhookSecret: webhookNode.data.secret,
+        };
+      }
 
       await api.put(`/workflows/${workflowId}`, payload);
 
@@ -489,12 +505,12 @@ function WorkflowEditorInner() {
                   nds.map((n) =>
                     n.id === activeNode.id
                       ? {
-                          ...n,
-                          data: {
-                            ...n.data,
-                            config: conditionConfig.config,
-                          },
-                        }
+                        ...n,
+                        data: {
+                          ...n.data,
+                          config: conditionConfig.config,
+                        },
+                      }
                       : n,
                   ),
                 );
@@ -519,11 +535,10 @@ function WorkflowEditorInner() {
       <button
         onClick={handleSaveWorkflow}
         disabled={saving}
-        className={`fixed top-6 right-6 px-5 py-3 rounded-full cursor-pointer shadow-lg transition font-semibold ${
-          saving
+        className={`fixed top-6 right-6 px-5 py-3 rounded-full cursor-pointer shadow-lg transition font-semibold ${saving
             ? "bg-gray-400 text-white cursor-not-allowed"
             : "bg-purple-600 text-white hover:bg-purple-700"
-        }`}
+          }`}
       >
         {saving ? "Saving..." : "Save Workflow"}
       </button>

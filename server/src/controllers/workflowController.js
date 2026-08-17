@@ -122,17 +122,27 @@ export const updateWorkflow = async (req, res) => {
       });
     }
 
+    const updateFields = { actions, nodes, edges, status, name, description };
+
+    // Sirf tab triggers touch karo jab client ne waqai bheja ho
+    if (triggers !== undefined) {
+      if (triggers?.type === "webhook" && !triggers.webhookSecret) {
+        // Secret missing aaya hai — purana secret preserve karo, wipe mat karo
+        const existing = await Workflow.findById(req.params.id).select("triggers");
+        updateFields.triggers = {
+          ...triggers,
+          webhookSecret: existing?.triggers?.webhookSecret,
+        };
+      } else {
+        updateFields.triggers = triggers;
+      }
+    }
+    // Agar triggers key hi body mein nahi thi, updateFields mein bhi
+    // wo key add nahi hogi — Mongoose purani value untouched rakhega
+
     const workflow = await Workflow.findByIdAndUpdate(
       req.params.id,
-      {
-        triggers,
-        actions,
-        nodes,
-        edges,
-        status,
-        name,
-        description,
-      },
+      updateFields,
       { new: true, runValidators: true },
     );
 
@@ -147,7 +157,6 @@ export const updateWorkflow = async (req, res) => {
     res.status(400).json({ success: false, message: err.message });
   }
 };
-
 // ✅ Delete workflow
 export const deleteWorkflow = async (req, res) => {
   const session = await mongoose.startSession();
